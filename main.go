@@ -2,32 +2,25 @@ package main
 
 import (
 	"fmt"
-	"html/template"
 	"log"
 	"net/http"
+	"text/template"
 )
 
-func homePage(h http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(h, "Hello word")
+func home(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "hello jacob")
 }
 
-func login(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
-	switch r.Method {
-	case "GET":
-		t, _ := template.ParseFiles("login.jacob")
-		log.Println(t.Execute(w, nil))
-		break
-	case "POST":
-		fmt.Println("username:", r.Form["acc"])
-		fmt.Println("password:", r.Form["pswd"])
-	}
+func loginPage(w http.ResponseWriter, r *http.Request) {
+	tmpl := template.Must(template.ParseFiles("./views/login.html"))
+	tmpl.Execute(w, nil)
 }
 
 func main() {
-	go http.HandleFunc("/", homePage)
-	go http.HandleFunc("/login", login)
-	err := http.ListenAndServe(":9090", nil)
+	http.HandleFunc("/", home)
+	http.HandleFunc("/login", loginPage)
+
+	err := http.ListenAndServe(":8888", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
