@@ -1,43 +1,61 @@
 <html>
 
 <head>
-    <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
-    <link href="../static/css/login-form.css" rel="stylesheet" />
-    <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="../static/css/bootstrap.css" rel="stylesheet" type='text/plan' />
+    <link href="../static/css/Site.css" rel="stylesheet" type='text/plan' />
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet">
     <link href='https://fonts.googleapis.com/css?family=Varela+Round' rel='stylesheet' type='text/css'>
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="../static/css/login-form.css" rel="stylesheet" type='text/plan' />
     <title>GoChat</title>
 </head>
 
 <body>
-    <!-- LOGIN FORM -->
-    <div class="text-center" style="padding:50px 0">
-        <div class="logo">login</div>
-        <!-- Main Form -->
-        <div class="login-form-1">
-            <form action="/login" method="post">
-                <div class="login-form-main-message"></div>
-                <div class="main-login-form">
-                    <div class="login-group">
-                        <div class="form-group">
-                            <lablel class="sr-only" label for="acc">name</label>
-                                <input type="text" id="acc" name="acc" class="form-control" placeholder="username"
-                                    required>
+    <div class="container body-content">
+
+        <!-- LOGIN FORM -->
+        <div class="text-center" style="padding:50px 0">
+            <div class="logo">login</div>
+            <!-- Main Form -->
+            <div class="login-form-1">
+                <form cssstylecollection="text-left" action="/login" enctype="multipart/form-data" method="post">
+                    <div class="main-login-form">
+                        <div class="login-group">
+                            <div class="form-group">
+                                <label class="sr-only" for="acc">name</label>
+                                <input class="form-control" data-val="true"
+                                    data-val-maxlength="欄位 acc 必須是最大長度為 '50' 的字串或陣列型別。" data-val-maxlength-max="50"
+                                    data-val-required="acc 欄位是必要項。" id="acc" name="acc" placeholder="username"
+                                    required="required" type="text">
+                            </div>
+                            <div class="form-group">
+                                <label class="sr-only" for="pswd">pswd</label>
+                                <input class="form-control" data-val="true"
+                                    data-val-maxlength="欄位 pswd 必須是最大長度為 '50' 的字串或陣列型別。" data-val-maxlength-max="50"
+                                    data-val-required="pswd 欄位是必要項。" id="pswd" name="pswd" placeholder="password"
+                                    required="required" type="password">
+                            </div>
                         </div>
-                        <div class="form-group">
-                            <lablel class="sr-only" label for="pswd">name</label>
-                                <input type="password" id="pswd" name="pswd" class="form-control" placeholder="username"
-                                    required>
-                        </div>
+                        <button type="submit" class="login-button"><i class="fa fa-chevron-right"></i></button>
                     </div>
-                    <button type="submit" class="login-button"><i class="fa fa-chevron-right"></i></button>
-                </div>
-                <div class="etc-login-form">
-                    <!-- <p>forgot your password? <a href="#">click here</a></p> -->
-                    <p>new user? <a href="#">create new account</a></p>
-                </div>
-            </form>
+                    <div class="etc-login-form">
+                        <p>new user? <a href="/register">create new account</a></p>
+                    </div>
+                </form>
+            </div>
         </div>
+
+        <footer>
+            <label>© 2021 - 喔吼 copyright by jacob</label>
+        </footer>
     </div>
+    <script src="../static/js/modernizr-2.8.3.js"></script>
+    <script src="../static/js/jquery-3.4.1.js"></script>
+    <script src="../static/js/bootstrap.js"></script>
+
 </body>
 
 </html>
