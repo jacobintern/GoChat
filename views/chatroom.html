@@ -1,7 +1,97 @@
 <html>
 
-<head></head>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/static/css/bootstrap.css" rel="stylesheet" type='text/css' />
+    <link href="/static/css/Site.css" rel="stylesheet" type='text/css' />
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet" type='text/css'>
+    <link href='https://fonts.googleapis.com/css?family=Varela+Round' rel='stylesheet' type='text/css'>
+</head>
 
-<body>chatroom</body>
+
+<body>
+    <div class="container body-content">
+        <div class="row">
+            <div class="col-sm-10">
+                <div class="panel panel-primary">
+                    <div class="panel-heading">Chating Content <span id="userName"
+                            class="glyphicon glyphicon-user pull-right"> Hi ！ </span></div>
+                    <div id="messageBox" class="panel-body">
+                        <ul id="messageList"></ul>
+                    </div>
+                </div>
+                <div id="bar">
+                    <div class="col-sm-4">
+                        <select id="box" class="form-control">
+                            <option value="all"> 所有人 </option>
+                        </select>
+                    </div>
+                    <div class="col-sm-4">
+                        <input type="text" id="message" class="form-control">
+                    </div>
+                    <div class="col-sm-4">
+                        <input type="button" id="send" value="Sent">
+                    </div>
+
+                </div>
+            </div>
+            <div class="col-sm-2">
+                <div class="panel panel-info">
+                    <div class="panel-heading">Online User</div>
+                    <div class="panel-body">
+                        <div id="chatList">
+                            <p> 上線清單 </p>
+                            <ul id="list"></ul>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+        <hr>
+        <footer>
+            <label>© 2021 - 喔吼 copyright by jacob</label>
+        </footer>
+    </div>
+    <script src="/static/js/modernizr-2.8.3.js"></script>
+    <script src="/static/js/jquery-3.4.1.js"></script>
+    <script src="/static/js/bootstrap.js"></script>
+    <script src="/static/js/jquery.signalR-2.4.1.min.js"></script>
+
+    <script>
+        var socket = null;
+        $(function () {
+            socket = new WebSocket('ws://' + window.location.host);
+
+            socket.onopen = function () {
+                console.log("connected to " + wsuri);
+            }
+
+            socket.onclose = function (e) {
+                console.log("connection closed (" + e.code + ")");
+            }
+
+            socket.onmessage = function (e) {
+                console.log("message received: " + e.data);
+            }
+
+            $('#message').keypress(function (e) {
+                var key = e.which;
+                if (key == 13) {
+                    socket.sendAll($("message").val());
+                    $("#message").val('').focus();
+                }
+
+            });
+
+            $("#send").click(function () {
+                socket.sendAll($("message").val());
+                $("#message").val('').focus();
+            });
+        })
+    </script>
+</body>
 
 </html>

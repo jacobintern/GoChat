@@ -11,9 +11,11 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"golang.org/x/net/websocket"
 )
 
-func mongoDBcontext(dbName string, collectionName string) *mongo.Collection {
+// MongoDBcontext is connect setting
+func MongoDBcontext(dbName string, collectionName string) *mongo.Collection {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(
@@ -25,11 +27,13 @@ func mongoDBcontext(dbName string, collectionName string) *mongo.Collection {
 	return client.Database(dbName).Collection(collectionName)
 }
 
-func home(w http.ResponseWriter, r *http.Request) {
+// Home is home page
+func Home(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "hello jacob")
 }
 
-func loginPage(w http.ResponseWriter, r *http.Request) {
+// LoginPage is login page
+func LoginPage(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		tmpl := template.Must(template.ParseFiles("./views/login.html"))
@@ -39,7 +43,7 @@ func loginPage(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		acc := r.FormValue("acc")
 		pswd := r.FormValue("pswd")
-		if validUser(acc, pswd) {
+		if ValidUser(acc, pswd) {
 			http.Redirect(w, r, "/chatroom", http.StatusSeeOther)
 		} else {
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
@@ -57,8 +61,9 @@ func loginPage(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-func validUser(acc string, pswd string) bool {
-	collection := mongoDBcontext("chat_db", "chat_acc")
+// ValidUser is checkout login user exist in mongodb
+func ValidUser(acc string, pswd string) bool {
+	collection := MongoDBcontext("chat_db", "chat_acc")
 	filter := bson.M{"acc": acc, "pswd": pswd}
 	// data, err := collection.Find(context.Background(), filter)
 	// if err != nil {
@@ -68,7 +73,8 @@ func validUser(acc string, pswd string) bool {
 	return data.Err() != mongo.ErrNoDocuments
 }
 
-func register(w http.ResponseWriter, r *http.Request) {
+// Register is user
+func Register(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		tmpl := template.Must(template.ParseFiles("./views/register.html"))
@@ -88,7 +94,8 @@ func register(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func chatRoom(w http.ResponseWriter, r *http.Request) {
+// ChatRoom is chat room
+func ChatRoom(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
 		tmpl := template.Must(template.ParseFiles("./views/chatroom.html"))
@@ -108,17 +115,24 @@ func chatRoom(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// SendAll is websocket send message function
+func SendAll(ws *websocket.Conn) {
+
+}
+
 func main() {
 	// page
-	http.HandleFunc("/", home)
-	http.HandleFunc("/login", loginPage)
-	http.HandleFunc("/register", register)
-	http.HandleFunc("/chatroom", chatRoom)
+	http.HandleFunc("/", Home)
+	http.HandleFunc("/login", LoginPage)
+	http.HandleFunc("/register", Register)
+	http.HandleFunc("/chatroom", ChatRoom)
+	http.Handle("/sendAll", websocket.Handler(SendAll))
 
 	// static
 	fs := http.FileServer(http.Dir("./static"))
 	http.Handle("/static/", http.StripPrefix("/static/", fs))
 
+	// if any err log
 	err := http.ListenAndServe(":8888", nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
