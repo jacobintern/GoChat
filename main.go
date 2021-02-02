@@ -1,8 +1,10 @@
 package main
 
 import (
+	"container/list"
 	"context"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"text/template"
@@ -117,7 +119,37 @@ func ChatRoom(w http.ResponseWriter, r *http.Request) {
 
 // SendAll is websocket send message function
 func SendAll(ws *websocket.Conn) {
+}
 
+var conns *list.List
+
+// Echo is
+func Echo(ws *websocket.Conn) {
+	var err error
+	pool := conns.PushBack(ws)
+
+	defer ws.Close()
+	defer conns.Remove(pool)
+
+	for {
+		var reply string
+
+		if err = websocket.Message.Receive(ws, &reply); err != nil {
+			fmt.Println("Can't receive")
+			break
+		}
+
+		for item := conns.Front(); item != nil; item = item.Next() {
+			ws, ok := item.Value.(*websocket.Conn)
+			if !ok {
+				panic("item not *websocket.Conn")
+			}
+			if item == pool {
+				continue
+			}
+			io.WriteString(ws, reply)
+		}
+	}
 }
 
 func main() {
@@ -126,7 +158,7 @@ func main() {
 	http.HandleFunc("/login", LoginPage)
 	http.HandleFunc("/register", Register)
 	http.HandleFunc("/chatroom", ChatRoom)
-	http.Handle("/sendAll", websocket.Handler(SendAll))
+	http.Handle("/ws", websocket.Handler(Echo))
 
 	// static
 	fs := http.FileServer(http.Dir("./static"))

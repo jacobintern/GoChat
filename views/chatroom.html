@@ -10,7 +10,6 @@
     <link href='https://fonts.googleapis.com/css?family=Varela+Round' rel='stylesheet' type='text/css'>
 </head>
 
-
 <body>
     <div class="container body-content">
         <div class="row">
@@ -47,7 +46,6 @@
                         </div>
                     </div>
                 </div>
-
             </div>
         </div>
         <hr>
@@ -58,36 +56,29 @@
     <script src="/static/js/modernizr-2.8.3.js"></script>
     <script src="/static/js/jquery-3.4.1.js"></script>
     <script src="/static/js/bootstrap.js"></script>
-    <script src="/static/js/jquery.signalR-2.4.1.min.js"></script>
 
     <script>
         var socket = null;
         $(function () {
-            socket = new WebSocket('ws://' + window.location.host);
-
-            socket.onopen = function () {
-                console.log("connected to " + wsuri);
-            }
-
-            socket.onclose = function (e) {
-                console.log("connection closed (" + e.code + ")");
-            }
+            var wsuri = window.location.host + '/ws'
+            socket = new WebSocket('ws://' + wsuri);
 
             socket.onmessage = function (e) {
-                console.log("message received: " + e.data);
+                var msgBox = $("#messageList");
+                msgBox.append("<li>" + e.data + "</li>");
+                msgBox.scrollTop = msgBox.scrollHeight;
             }
 
             $('#message').keypress(function (e) {
                 var key = e.which;
                 if (key == 13) {
-                    socket.sendAll($("message").val());
+                    socket.send($("#message").val());
                     $("#message").val('').focus();
                 }
-
             });
 
             $("#send").click(function () {
-                socket.sendAll($("message").val());
+                socket.send($("#message").val());
                 $("#message").val('').focus();
             });
         })
