@@ -121,11 +121,10 @@ func ChatRoom(w http.ResponseWriter, r *http.Request) {
 func SendAll(ws *websocket.Conn) {
 }
 
-var conns *list.List
+var conns = list.New()
 
 // Echo is
 func Echo(ws *websocket.Conn) {
-	var err error
 	pool := conns.PushBack(ws)
 
 	defer ws.Close()
@@ -134,10 +133,12 @@ func Echo(ws *websocket.Conn) {
 	for {
 		var reply string
 
-		if err = websocket.Message.Receive(ws, &reply); err != nil {
+		if err := websocket.Message.Receive(ws, &reply); err != nil {
 			fmt.Println("Can't receive")
 			break
 		}
+
+		log.Printf("Received message: %s", reply)
 
 		for item := conns.Front(); item != nil; item = item.Next() {
 			ws, ok := item.Value.(*websocket.Conn)
