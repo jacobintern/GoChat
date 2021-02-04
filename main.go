@@ -3,6 +3,7 @@ package main
 import (
 	"container/list"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log"
@@ -13,8 +14,16 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
+	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
 	"golang.org/x/net/websocket"
 )
+
+// ChatData is
+type ChatData struct {
+	ClientID string `json:"client_id"`
+	Msg      string `json:"msg"`
+	ToID     string `json:"to_id"`
+}
 
 // MongoDBcontext is connect setting
 func MongoDBcontext(dbName string, collectionName string) *mongo.Collection {
@@ -98,10 +107,15 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 // ChatRoom is chat room
 func ChatRoom(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	switch r.Method {
 	case "GET":
 		tmpl := template.Must(template.ParseFiles("./views/chatroom.html"))
-		tmpl.Execute(w, nil)
+		data := ChatData{
+			ClientID: GetUUID(),
+		}
+		fmt.Printf(data.ClientID)
+		tmpl.Execute(w, data)
 		break
 	case "POST":
 		fmt.Fprintf(w, "post")
@@ -117,37 +131,44 @@ func ChatRoom(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// SendAll is websocket send message function
-func SendAll(ws *websocket.Conn) {
+// GetUUID is
+func GetUUID() string {
+	uuid, err := uuid.New()
+
+	if err != nil {
+		log.Fatal(err)
+	}
+	return string(uuid[:])
 }
 
-var conns *list.List
+var conns = list.New()
 
 // Echo is
 func Echo(ws *websocket.Conn) {
-	var err error
 	pool := conns.PushBack(ws)
-
 	defer ws.Close()
 	defer conns.Remove(pool)
 
 	for {
-		var reply string
-
-		if err = websocket.Message.Receive(ws, &reply); err != nil {
+		var tmp string
+		reply := ChatData{}
+		if err := websocket.Message.Receive(ws, &reply); err != nil {
 			fmt.Println("Can't receive")
+			fmt.Println(err.Error())
 			break
 		}
+		json.Unmarshal([]byte(tmp), &reply)
+
+		fmt.Println(reply.ClientID)
+		fmt.Println(reply.ToID)
+		fmt.Println(reply.Msg)
 
 		for item := conns.Front(); item != nil; item = item.Next() {
 			ws, ok := item.Value.(*websocket.Conn)
 			if !ok {
 				panic("item not *websocket.Conn")
 			}
-			if item == pool {
-				continue
-			}
-			io.WriteString(ws, reply)
+			io.WriteString(ws, reply.Msg)
 		}
 	}
 }

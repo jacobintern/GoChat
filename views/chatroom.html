@@ -15,8 +15,9 @@
         <div class="row">
             <div class="col-sm-10">
                 <div class="panel panel-primary">
-                    <div class="panel-heading">Chating Content <span id="userName"
-                            class="glyphicon glyphicon-user pull-right"> Hi ！ </span></div>
+                    <div class="panel-heading">Chating Content
+                        <span id="userName" class="glyphicon glyphicon-user pull-right"> Hi ！ {{.ClientID }} </span>
+                    </div>
                     <div id="messageBox" class="panel-body">
                         <ul id="messageList"></ul>
                     </div>
@@ -68,18 +69,30 @@
                 msgBox.append("<li>" + e.data + "</li>");
                 msgBox.scrollTop = msgBox.scrollHeight;
             }
-
+            console.log();
             $('#message').keypress(function (e) {
+                var m = $("#message");
+                var data = {
+                    client_id: '',
+                    to_id: '',
+                    msg: m.val()
+                }
                 var key = e.which;
                 if (key == 13) {
-                    socket.send($("#message").val());
-                    $("#message").val('').focus();
+                    socket.send(JSON.stringify(data));
+                    m.val('').focus();
                 }
             });
 
             $("#send").click(function () {
-                socket.send($("#message").val());
-                $("#message").val('').focus();
+                var m = $("#message");
+                var data = {
+                    client_id: '',
+                    to_id: '',
+                    msg: m.val()
+                }
+                socket.send(JSON.stringify(data));
+                m.val('').focus();
             });
         })
     </script>
