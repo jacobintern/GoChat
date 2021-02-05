@@ -3,6 +3,7 @@ package main
 import (
 	"container/list"
 	"context"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -21,8 +22,17 @@ import (
 // ChatData is
 type ChatData struct {
 	ClientID string `json:"client_id"`
+	Name     string `json:"usr_name"`
 	Msg      string `json:"msg"`
 	ToID     string `json:"to_id"`
+}
+
+// ChatAcc is
+type ChatAcc struct {
+	Acc    string `bson:"acc"`
+	Email  string `bson:"email"`
+	Name   string `bson:"name"`
+	Gender string `bson:"gender"`
 }
 
 // MongoDBcontext is connect setting
@@ -51,13 +61,12 @@ func LoginPage(w http.ResponseWriter, r *http.Request) {
 		tmpl.Execute(w, nil)
 		break
 	case "POST":
-		r.ParseForm()
-		acc := r.FormValue("acc")
-		pswd := r.FormValue("pswd")
-		if ValidUser(acc, pswd) {
-			http.Redirect(w, r, "/chatroom", http.StatusSeeOther)
+		if data := ValidUser(r); len(data.ClientID) > 0 {
+			tmpl := template.Must(template.ParseFiles("./views/chatroom.html"))
+			tmpl.Execute(w, data)
 		} else {
-			http.Redirect(w, r, "/login", http.StatusSeeOther)
+			tmpl := template.Must(template.ParseFiles("./views/login.html"))
+			tmpl.Execute(w, nil)
 		}
 		break
 	case "PUT":
@@ -73,15 +82,23 @@ func LoginPage(w http.ResponseWriter, r *http.Request) {
 }
 
 // ValidUser is checkout login user exist in mongodb
-func ValidUser(acc string, pswd string) bool {
+func ValidUser(r *http.Request) ChatData {
+	chatAcc := ChatAcc{}
+	r.ParseForm()
+	acc := r.FormValue("acc")
+	pswd := r.FormValue("pswd")
 	collection := MongoDBcontext("chat_db", "chat_acc")
 	filter := bson.M{"acc": acc, "pswd": pswd}
-	// data, err := collection.Find(context.Background(), filter)
-	// if err != nil {
-	// 	log.Fatal(err)
-	// }
-	data := collection.FindOne(context.Background(), filter)
-	return data.Err() != mongo.ErrNoDocuments
+	err := collection.FindOne(context.Background(), filter).Decode(&chatAcc)
+
+	if err == nil {
+		res := ChatData{
+			ClientID: GetUUID(),
+			Name:     chatAcc.Name,
+		}
+		return res
+	}
+	return ChatData{}
 }
 
 // Register is user
@@ -107,15 +124,10 @@ func Register(w http.ResponseWriter, r *http.Request) {
 
 // ChatRoom is chat room
 func ChatRoom(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	switch r.Method {
 	case "GET":
 		tmpl := template.Must(template.ParseFiles("./views/chatroom.html"))
-		data := ChatData{
-			ClientID: GetUUID(),
-		}
-		fmt.Printf(data.ClientID)
-		tmpl.Execute(w, data)
+		tmpl.Execute(w, nil)
 		break
 	case "POST":
 		fmt.Fprintf(w, "post")
@@ -138,7 +150,18 @@ func GetUUID() string {
 	if err != nil {
 		log.Fatal(err)
 	}
-	return string(uuid[:])
+	var buf [36]byte
+	hex.Encode(buf[0:8], uuid[:4])
+	buf[8] = '-'
+	hex.Encode(buf[9:13], uuid[4:6])
+	buf[13] = '-'
+	hex.Encode(buf[14:18], uuid[6:8])
+	buf[18] = '-'
+	hex.Encode(buf[19:23], uuid[8:10])
+	buf[23] = '-'
+	hex.Encode(buf[24:], uuid[10:])
+
+	return string(buf[:])
 }
 
 var conns = list.New()
@@ -152,23 +175,23 @@ func Echo(ws *websocket.Conn) {
 	for {
 		var tmp string
 		reply := ChatData{}
-		if err := websocket.Message.Receive(ws, &reply); err != nil {
-			fmt.Println("Can't receive")
-			fmt.Println(err.Error())
+		if err := websocket.Message.Receive(ws, &tmp); err != nil {
+			fmt.Println("Can't receive, reason : " + err.Error())
 			break
 		}
 		json.Unmarshal([]byte(tmp), &reply)
 
-		fmt.Println(reply.ClientID)
-		fmt.Println(reply.ToID)
-		fmt.Println(reply.Msg)
+		message := reply.Name + " say : " + reply.Msg
 
 		for item := conns.Front(); item != nil; item = item.Next() {
 			ws, ok := item.Value.(*websocket.Conn)
 			if !ok {
 				panic("item not *websocket.Conn")
 			}
-			io.WriteString(ws, reply.Msg)
+			if len(reply.ToID) > 0 && reply.ToID != "all" {
+			} else {
+				io.WriteString(ws, message)
+			}
 		}
 	}
 }
