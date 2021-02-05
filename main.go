@@ -30,23 +30,13 @@ type ChatData struct {
 // ChatAcc is
 type ChatAcc struct {
 	Acc    string `bson:"acc"`
+	Pswd   string `bson:"pswd"`
 	Email  string `bson:"email"`
 	Name   string `bson:"name"`
 	Gender string `bson:"gender"`
 }
 
-// MongoDBcontext is connect setting
-func MongoDBcontext(dbName string, collectionName string) *mongo.Collection {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(
-		"mongodb+srv://j_dev:zHYJQ2jc7UAqHThV@jdev.y4x5s.gcp.mongodb.net/"+dbName+"?retryWrites=true&w=majority",
-	))
-	if err != nil {
-		log.Fatal(err)
-	}
-	return client.Database(dbName).Collection(collectionName)
-}
+var conns = list.New()
 
 // Home is home page
 func Home(w http.ResponseWriter, r *http.Request) {
@@ -81,26 +71,6 @@ func LoginPage(w http.ResponseWriter, r *http.Request) {
 	return
 }
 
-// ValidUser is checkout login user exist in mongodb
-func ValidUser(r *http.Request) ChatData {
-	chatAcc := ChatAcc{}
-	r.ParseForm()
-	acc := r.FormValue("acc")
-	pswd := r.FormValue("pswd")
-	collection := MongoDBcontext("chat_db", "chat_acc")
-	filter := bson.M{"acc": acc, "pswd": pswd}
-	err := collection.FindOne(context.Background(), filter).Decode(&chatAcc)
-
-	if err == nil {
-		res := ChatData{
-			ClientID: GetUUID(),
-			Name:     chatAcc.Name,
-		}
-		return res
-	}
-	return ChatData{}
-}
-
 // Register is user
 func Register(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -109,7 +79,7 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		tmpl.Execute(w, nil)
 		break
 	case "POST":
-		fmt.Fprintf(w, "post")
+		//CreateUser(r)
 		break
 	case "PUT":
 		fmt.Fprintf(w, "put")
@@ -143,6 +113,56 @@ func ChatRoom(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// MongoDBcontext is connect setting
+func MongoDBcontext(dbName string, collectionName string) *mongo.Collection {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(
+		"mongodb+srv://j_dev:zHYJQ2jc7UAqHThV@jdev.y4x5s.gcp.mongodb.net/"+dbName+"?retryWrites=true&w=majority",
+	))
+	if err != nil {
+		log.Fatal(err)
+	}
+	return client.Database(dbName).Collection(collectionName)
+}
+
+// ValidUser is checkout login user exist in mongodb
+func ValidUser(r *http.Request) ChatData {
+	chatAcc := ChatAcc{}
+	r.ParseForm()
+	acc := r.FormValue("acc")
+	pswd := r.FormValue("pswd")
+	collection := MongoDBcontext("chat_db", "chat_acc")
+	filter := bson.M{"acc": acc, "pswd": pswd}
+	err := collection.FindOne(context.Background(), filter).Decode(&chatAcc)
+
+	if err == nil {
+		res := ChatData{
+			ClientID: GetUUID(),
+			Name:     chatAcc.Name,
+		}
+		return res
+	}
+	return ChatData{}
+}
+
+// CreateUser is
+func CreateUser(r *http.Request) *mongo.InsertOneResult {
+	r.ParseForm()
+	collection := MongoDBcontext("chat_db", "chat_acc")
+	res, err := collection.InsertOne(context.Background(), ChatAcc{
+		Acc:    r.FormValue("acc"),
+		Pswd:   r.FormValue("pswd"),
+		Name:   r.FormValue("name"),
+		Email:  r.FormValue("email"),
+		Gender: r.FormValue("gender"),
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	return res
+}
+
 // GetUUID is
 func GetUUID() string {
 	uuid, err := uuid.New()
@@ -163,8 +183,6 @@ func GetUUID() string {
 
 	return string(buf[:])
 }
-
-var conns = list.New()
 
 // Echo is
 func Echo(ws *websocket.Conn) {

@@ -1,7 +1,127 @@
 <html>
 
-<head></head>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="/static/css/bootstrap.css" rel="stylesheet" type="text/css">
+    <link href="/static/css/site.css" rel="stylesheet" type="text/css">
 
-<body>register</body>
+    <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.3.0/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+    <link href="https://fonts.googleapis.com/css?family=Varela+Round" rel="stylesheet" type="text/css">
+
+    <link href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.0/css/bootstrap.min.css" rel="stylesheet" id="bootstrap-css">
+    <link href="/static/css/login-form.css" rel="stylesheet" type="text/css">
+    <link href="/static/sweetalert2/dist/sweetalert2.min.css" rel="stylesheet" type="text/css">
+</head>
+
+<body>
+    <div class="container body-content">
+
+        <!-- REGISTER FORM -->
+        <div class="text-center" style="padding:50px 0">
+            <div class="logo">register</div>
+            <!-- Main Form -->
+            <div class="login-form-1">
+                <form cssstylecollection="text-left" action="/register" method="post">
+                    <div class="login-form-main-message"></div>
+                    <div class="main-login-form">
+                        <div class="login-group">
+                            <div class="form-group">
+                                <label class="sr-only" for="acc">acc</label>
+                                <input class="form-control" data-val="true"
+                                    data-val-maxlength="欄位 acc 必須是最大長度為 '50' 的字串或陣列型別。" data-val-maxlength-max="50"
+                                    data-val-required="acc 欄位是必要項。" id="acc" name="acc" placeholder="username"
+                                    required="required" type="text" value="">
+                            </div>
+                            <div class="form-group">
+                                <label class="sr-only" for="pswd">pswd</label>
+                                <input class="form-control" data-val="true"
+                                    data-val-maxlength="欄位 pswd 必須是最大長度為 '50' 的字串或陣列型別。" data-val-maxlength-max="50"
+                                    data-val-required="pswd 欄位是必要項。" id="pswd" name="pswd" placeholder="password"
+                                    required="required" type="password">
+                            </div>
+                            <div class="form-group">
+                                <label class="sr-only" for="ConfirmPassword">ConfirmPassword</label>
+                                <input class="form-control" data-val="true" data-val-equalto="請確認與輸入密碼相同。"
+                                    data-val-equalto-other="*.pswd" id="ConfirmPassword" name="ConfirmPassword"
+                                    placeholder="confirm password" required="required" type="password">
+                            </div>
+
+                            <div class="form-group">
+                                <label class="sr-only" for="email">email</label>
+                                <input class="form-control" id="email" name="email" placeholder="email" type="text"
+                                    value="">
+                            </div>
+                            <div class="form-group">
+                                <label class="sr-only" for="name">name</label>
+                                <input class="form-control" data-val="true"
+                                    data-val-maxlength="欄位 name 必須是最大長度為 '20' 的字串或陣列型別。" data-val-maxlength-max="20"
+                                    data-val-required="name 欄位是必要項。" id="name" name="name" placeholder="full name"
+                                    type="text" value="">
+                            </div>
+
+                            <div class="form-group login-group-checkbox">
+                                <input id="male" name="gender" type="radio" value="Male">
+                                <label for="male">Male</label>
+                                <input id="female" name="gender" type="radio" value="Female">
+                                <label for="female">Female</label>
+                            </div>
+
+                            <div class="form-group login-group-checkbox">
+                                <input type="checkbox" class="" id="reg_agree" name="reg_agree">
+                                <label for="reg_agree">i agree with <a href="#">terms</a></label>
+                            </div>
+                        </div>
+                        <button type="submit" class="login-button"><i class="fa fa-chevron-right"></i></button>
+                    </div>
+                    <div class="etc-login-form">
+                        <p>already have an account? <a href="/">login here</a></p>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <hr>
+        <footer>
+            <label>© 2021 - 喔吼 copyright by jacob</label>
+        </footer>
+    </div>
+    <script src="/static/js/modernizr-2.8.3.js"></script>
+    <script src="/static/js/jquery-3.4.1.js"></script>
+    <script src="/static/js/bootstrap.js"></script>
+    <script src="/static/sweetalert2/dist/sweetalert2.min.js"></script>
+    <script>
+        $(function () {
+            $('form').submit(function () {
+                if (!$('#reg_agree').is(':checked')) {
+                    var data = {
+                        type: 'error',
+                        title: 'Oops...',
+                        msg: 'Please check trems and checked.'
+                    }
+                    SweetAlert(data)
+                    return false;
+                }
+                if ($('#ConfirmPassword').val() != $('#pswd').val()) {
+                    var data = {
+                        type: 'error',
+                        title: 'Oops...',
+                        msg: 'Please check weather password and confirm password are same '
+                    }
+                    SweetAlert(data)
+                    return false;
+                }
+            });
+
+            function SweetAlert(data) {
+                Swal.fire({
+                    icon: data.type,
+                    title: data.title,
+                    text: data.msg
+                })
+            }
+        })
+    </script>
+</body>
 
 </html>
