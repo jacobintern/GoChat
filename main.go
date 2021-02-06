@@ -6,13 +6,13 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"text/template"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
@@ -29,11 +29,18 @@ type ChatData struct {
 
 // ChatAcc is
 type ChatAcc struct {
+	ID     string `bson:"_id,omitempty"`
 	Acc    string `bson:"acc"`
 	Pswd   string `bson:"pswd"`
 	Email  string `bson:"email"`
 	Name   string `bson:"name"`
 	Gender string `bson:"gender"`
+}
+
+// UsrConn is
+type UsrConn struct {
+	ConID string
+	conn  *websocket.Conn
 }
 
 var conns = list.New()
@@ -55,8 +62,7 @@ func LoginPage(w http.ResponseWriter, r *http.Request) {
 			tmpl := template.Must(template.ParseFiles("./views/chatroom.html"))
 			tmpl.Execute(w, data)
 		} else {
-			tmpl := template.Must(template.ParseFiles("./views/login.html"))
-			tmpl.Execute(w, nil)
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
 		}
 		break
 	case "PUT":
@@ -79,7 +85,11 @@ func Register(w http.ResponseWriter, r *http.Request) {
 		tmpl.Execute(w, nil)
 		break
 	case "POST":
-		//CreateUser(r)
+		if len(CreateUser(r).InsertedID.(primitive.ObjectID).Hex()) > 0 {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+		} else {
+			http.Redirect(w, r, "/register", http.StatusSeeOther)
+		}
 		break
 	case "PUT":
 		fmt.Fprintf(w, "put")
@@ -135,10 +145,9 @@ func ValidUser(r *http.Request) ChatData {
 	collection := MongoDBcontext("chat_db", "chat_acc")
 	filter := bson.M{"acc": acc, "pswd": pswd}
 	err := collection.FindOne(context.Background(), filter).Decode(&chatAcc)
-
 	if err == nil {
 		res := ChatData{
-			ClientID: GetUUID(),
+			ClientID: chatAcc.ID,
 			Name:     chatAcc.Name,
 		}
 		return res
@@ -186,10 +195,12 @@ func GetUUID() string {
 
 // Echo is
 func Echo(ws *websocket.Conn) {
-	pool := conns.PushBack(ws)
+	ws.Request().ParseForm()
+	pool := conns.PushBack(UsrConn{
+		ConID: ws.Request().URL.Query().Get("clientId"),
+		conn:  ws})
 	defer ws.Close()
 	defer conns.Remove(pool)
-
 	for {
 		var tmp string
 		reply := ChatData{}
@@ -202,13 +213,14 @@ func Echo(ws *websocket.Conn) {
 		message := reply.Name + " say : " + reply.Msg
 
 		for item := conns.Front(); item != nil; item = item.Next() {
-			ws, ok := item.Value.(*websocket.Conn)
+			usr, ok := item.Value.(UsrConn)
 			if !ok {
 				panic("item not *websocket.Conn")
 			}
-			if len(reply.ToID) > 0 && reply.ToID != "all" {
+
+			if len(reply.ToID) > 0 && reply.ToID != "all" && reply.ToID == usr.ConID {
 			} else {
-				io.WriteString(ws, message)
+				websocket.Message.Send(usr.conn, message)
 			}
 		}
 	}
