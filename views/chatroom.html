@@ -61,26 +61,37 @@
     <script>
         var socket = null;
         $(function () {
-            var wsuri = window.location.host + '/ws'
+            let wsuri = window.location.host + '/ws'
             socket = new WebSocket('ws://' + wsuri + "?clientId=" + $('#uuid').text());
-
             socket.onopen = function (e) {
-                console.log(e);
+                let data = GetData();
+                data.msg.type = 0;
+                socket.send(data)
             }
-
             socket.onmessage = function (e) {
-                var msgBox = $("#messageList");
-                msgBox.append("<li>" + e.data + "</li>");
-                msgBox.scrollTop = msgBox.scrollHeight;
+                let data = JSON.parse(e.data);
+                console.log(data);
+                let msgBox = $("#messageList");
+                // switch (data.type) {
+                //     case 0:
+                //         break;
+                //     case 1:
+                //         break;
+                //     default:
+                //         msgBox.append("<li>" + data.msg + "</li>");
+                //         msgBox.scrollTop = msgBox.scrollHeight;
+                //         break;
+                // }
             }
-
             socket.onclose = function (e) {
-                console.log(e);
+                let data = GetData();
+                data.msg.type = 1;
+                socket.send(data)
             }
 
             $('#message').keypress(function (e) {
-                var data = GetData();
-                var key = e.which;
+                let data = GetData();
+                let key = e.which;
                 if (key == 13) {
                     socket.send(data);
                     $("#message").val('').focus();
@@ -88,19 +99,23 @@
             });
 
             $("#send").click(function () {
-                var data = GetData();
+                let data = GetData();
                 socket.send(data);
                 $("#message").val('').focus();
             });
         })
 
+        // default type 2
         function GetData() {
-            var m = $("#message");
+            let m = $("#message");
             return JSON.stringify({
                 client_id: $('#uuid').text(),
-                to_id: $('#box').val(),
                 usr_name: $('#name').text(),
-                msg: m.val()
+                msg: {
+                    type: 2,
+                    content: m.val(),
+                    to_id: $('#box').val()
+                }
             });
         }
     </script>

@@ -19,16 +19,8 @@ import (
 	"golang.org/x/net/websocket"
 )
 
-// ChatData is
-type ChatData struct {
-	ClientID string `json:"client_id"`
-	Name     string `json:"usr_name"`
-	Msg      string `json:"msg"`
-	ToID     string `json:"to_id"`
-}
-
-// ChatAcc is
-type ChatAcc struct {
+// Acc is
+type Acc struct {
 	ID     string `bson:"_id,omitempty"`
 	Acc    string `bson:"acc"`
 	Pswd   string `bson:"pswd"`
@@ -37,13 +29,66 @@ type ChatAcc struct {
 	Gender string `bson:"gender"`
 }
 
-// UsrConn is
-type UsrConn struct {
-	ConID string
-	conn  *websocket.Conn
+// Broadcaster is
+// type broadcaster struct {
+// 	users map[string]*User
+
+// 	// channel
+// 	enterChannel   chan *User
+// 	leaveChannel   chan *User
+// 	messageChannel chan *Message
+// }
+
+// User is
+type User struct {
+	UID     string  `json:"client_id"`
+	Name    string  `json:"usr_name"`
+	Message Message `json:"msg"`
+	//MessageChan chan *Message `json:"-"`
+
+	conn *websocket.Conn
 }
 
+// Message is
+type Message struct {
+	ToID    string `json:"to_id"`
+	Type    int    `json:"type"`
+	Content string `json:"content"`
+}
+
+// Message is
+// type Message struct {
+// 	User  *User            `json:"user"`
+// 	Type  int              `json:"type"`
+// 	Msg   string           `json:"msg"`
+// 	Users map[string]*User `json:"users"`
+// }
+
 var conns = list.New()
+
+// Broadcaster is
+// var Broadcaster = &broadcaster{
+// 	users: make(map[string]*User),
+
+// 	enterChannel:   make(chan *User),
+// 	leaveChannel:   make(chan *User),
+// 	messageChannel: make(chan *Message),
+// }
+
+// func (b *broadcaster) Start() {
+// 	for {
+// 		select {
+// 		case user := <-b.enterChannel:
+// 			b.users[user.Name] = user
+// 		case user := <-b.leaveChannel:
+// 			delete(b.users, user.Name)
+// 		case msg := <-b.messageChannel:
+// 			for _, user := range b.users {
+// 				user.MessageChan <- msg
+// 			}
+// 		}
+// 	}
+// }
 
 // Home is home page
 func Home(w http.ResponseWriter, r *http.Request) {
@@ -58,7 +103,7 @@ func LoginPage(w http.ResponseWriter, r *http.Request) {
 		tmpl.Execute(w, nil)
 		break
 	case "POST":
-		if data := ValidUser(r); len(data.ClientID) > 0 {
+		if data := ValidUser(r); len(data.UID) > 0 {
 			tmpl := template.Must(template.ParseFiles("./views/chatroom.html"))
 			tmpl.Execute(w, data)
 		} else {
@@ -137,8 +182,8 @@ func MongoDBcontext(dbName string, collectionName string) *mongo.Collection {
 }
 
 // ValidUser is checkout login user exist in mongodb
-func ValidUser(r *http.Request) ChatData {
-	chatAcc := ChatAcc{}
+func ValidUser(r *http.Request) User {
+	chatAcc := Acc{}
 	r.ParseForm()
 	acc := r.FormValue("acc")
 	pswd := r.FormValue("pswd")
@@ -146,20 +191,20 @@ func ValidUser(r *http.Request) ChatData {
 	filter := bson.M{"acc": acc, "pswd": pswd}
 	err := collection.FindOne(context.Background(), filter).Decode(&chatAcc)
 	if err == nil {
-		res := ChatData{
-			ClientID: chatAcc.ID,
-			Name:     chatAcc.Name,
+		res := User{
+			UID:  chatAcc.ID,
+			Name: chatAcc.Name,
 		}
 		return res
 	}
-	return ChatData{}
+	return User{}
 }
 
 // CreateUser is
 func CreateUser(r *http.Request) *mongo.InsertOneResult {
 	r.ParseForm()
 	collection := MongoDBcontext("chat_db", "chat_acc")
-	res, err := collection.InsertOne(context.Background(), ChatAcc{
+	res, err := collection.InsertOne(context.Background(), Acc{
 		Acc:    r.FormValue("acc"),
 		Pswd:   r.FormValue("pswd"),
 		Name:   r.FormValue("name"),
@@ -196,37 +241,90 @@ func GetUUID() string {
 // Echo is
 func Echo(ws *websocket.Conn) {
 	ws.Request().ParseForm()
-	pool := conns.PushBack(UsrConn{
-		ConID: ws.Request().URL.Query().Get("clientId"),
-		conn:  ws})
+	pool := conns.PushBack(User{
+		UID:  ws.Request().URL.Query().Get("clientId"),
+		conn: ws})
 	defer ws.Close()
 	defer conns.Remove(pool)
 	for {
+
+		fmt.Println(ws.Request())
 		var tmp string
-		reply := ChatData{}
+		reply := User{}
 		if err := websocket.Message.Receive(ws, &tmp); err != nil {
 			fmt.Println("Can't receive, reason : " + err.Error())
 			break
 		}
 		json.Unmarshal([]byte(tmp), &reply)
 
-		message := reply.Name + " say : " + reply.Msg
+		switch reply.Message.Type {
+		//enter
+		case 0:
+			Wellcome(conns, &reply)
+			break
+		//leave
+		case 1:
+			Leaving(conns, &reply)
+			break
+		//normal
+		case 2:
+			SendMessage(conns, &reply)
+			break
+		}
+	}
+}
 
-		for item := conns.Front(); item != nil; item = item.Next() {
-			usr, ok := item.Value.(UsrConn)
-			if !ok {
-				panic("item not *websocket.Conn")
-			}
+// Wellcome is
+func Wellcome(conns *list.List, reply *User) {
+	for item := conns.Front(); item != nil; item = item.Next() {
+		usr, ok := item.Value.(User)
+		if !ok {
+			panic("item not *websocket.Conn")
+		}
+		reply.Message.Content = "-----     wellcome " + reply.Name + " come in.     -----"
+		if reply.UID == usr.UID {
+			continue
+		} else {
+			websocket.Message.Send(usr.conn, reply)
+		}
+	}
+}
 
-			if len(reply.ToID) > 0 && reply.ToID != "all" && reply.ToID == usr.ConID {
-			} else {
-				websocket.Message.Send(usr.conn, message)
-			}
+// Leaving is
+func Leaving(conns *list.List, reply *User) {
+	for item := conns.Front(); item != nil; item = item.Next() {
+		usr, ok := item.Value.(User)
+		if !ok {
+			panic("item not *websocket.Conn")
+		}
+		reply.Message.Content = "-----     " + reply.Name + " is leaved.     -----"
+		if reply.UID == usr.UID {
+			continue
+		} else {
+			websocket.Message.Send(usr.conn, reply)
+		}
+	}
+}
+
+// SendMessage is
+func SendMessage(conns *list.List, reply *User) {
+	for item := conns.Front(); item != nil; item = item.Next() {
+		usr, ok := item.Value.(User)
+		if !ok {
+			panic("item not *websocket.Conn")
+		}
+
+		if reply.Message.ToID != "all" && reply.Message.ToID == usr.UID && len(reply.Message.ToID) > 0 {
+			websocket.Message.Send(usr.conn, "This secret message from <font style='red'>"+reply.Name+"</font> say : "+reply.Message.Content)
+		} else {
+			websocket.Message.Send(usr.conn, reply.Name+" say : "+reply.Message.Content)
 		}
 	}
 }
 
 func main() {
+
+	//go Broadcaster.Start()
 	// page
 	http.HandleFunc("/", Home)
 	http.HandleFunc("/login", LoginPage)
