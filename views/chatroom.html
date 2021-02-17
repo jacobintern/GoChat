@@ -18,7 +18,7 @@
                     <div class="panel-heading">Chating Content
                         <span class="glyphicon glyphicon-user pull-right"> Hi ！{{.Name}}</span>
                         <span id="name" style="display: none;">{{.Name}}</span>
-                        <span id="uuid" style="display: none;">{{.ClientID}}</span>
+                        <span id="uuid" style="display: none;">{{.UID}}</span>
                     </div>
                     <div id="messageBox" class="panel-body">
                         <ul id="messageList"></ul>
@@ -27,7 +27,6 @@
                 <div id="bar">
                     <div class="col-sm-4">
                         <select id="box" class="form-control">
-                            <option value="all"> 所有人 </option>
                         </select>
                     </div>
                     <div class="col-sm-4">
@@ -61,36 +60,44 @@
     <script>
         var socket = null;
         $(function () {
-            let wsuri = window.location.host + '/ws'
+            let wsuri = window.location.host + '/ws';
             socket = new WebSocket('ws://' + wsuri + "?clientId=" + $('#uuid').text());
             socket.onopen = function (e) {
-                let data = GetData();
-                data.msg.type = 0;
+                let data = GetData(0);
                 socket.send(data)
             }
+
             socket.onmessage = function (e) {
                 let data = JSON.parse(e.data);
-                console.log(data);
+                let userBox = $("#box");
                 let msgBox = $("#messageList");
-                // switch (data.type) {
-                //     case 0:
-                //         break;
-                //     case 1:
-                //         break;
-                //     default:
-                //         msgBox.append("<li>" + data.msg + "</li>");
-                //         msgBox.scrollTop = msgBox.scrollHeight;
-                //         break;
-                // }
+                let list = $("#list");
+                switch (data.msg.type) {
+                    case 0:
+                        userBox.empty();
+                        list.empty();
+                        userBox.append("<option value='all'> 所有人 </option>");
+                        $.each(data.user_list, function (index, value) {
+                            userBox.append("<option value='" + value + "'>" + index + "</option>");
+                            list.append("<li>" + index + "</li>");
+                        });
+                        msgBox.append("<li>" + data.msg.content + "</li>");
+                        msgBox.scrollTop = msgBox.scrollHeight;
+                        break;
+                    default:
+                        msgBox.append("<li>" + data.msg.content + "</li>");
+                        msgBox.scrollTop = msgBox.scrollHeight;
+                        break;
+                }
             }
+
             socket.onclose = function (e) {
-                let data = GetData();
-                data.msg.type = 1;
+                let data = GetData(1);
                 socket.send(data)
             }
 
             $('#message').keypress(function (e) {
-                let data = GetData();
+                let data = GetData(2);
                 let key = e.which;
                 if (key == 13) {
                     socket.send(data);
@@ -99,20 +106,20 @@
             });
 
             $("#send").click(function () {
-                let data = GetData();
+                let data = GetData(2);
                 socket.send(data);
                 $("#message").val('').focus();
             });
         })
 
         // default type 2
-        function GetData() {
+        function GetData(type) {
             let m = $("#message");
             return JSON.stringify({
                 client_id: $('#uuid').text(),
                 usr_name: $('#name').text(),
                 msg: {
-                    type: 2,
+                    type: type,
                     content: m.val(),
                     to_id: $('#box').val()
                 }

@@ -41,9 +41,10 @@ type Acc struct {
 
 // User is
 type User struct {
-	UID     string  `json:"client_id"`
-	Name    string  `json:"usr_name"`
-	Message Message `json:"msg"`
+	UID      string            `json:"client_id"`
+	Name     string            `json:"usr_name"`
+	Message  Message           `json:"msg"`
+	UserList map[string]string `json:"user_list"`
 	//MessageChan chan *Message `json:"-"`
 
 	conn *websocket.Conn
@@ -65,6 +66,7 @@ type Message struct {
 // }
 
 var conns = list.New()
+var userList = make(map[string]string)
 
 // Broadcaster is
 // var Broadcaster = &broadcaster{
@@ -240,7 +242,6 @@ func GetUUID() string {
 
 // Echo is
 func Echo(ws *websocket.Conn) {
-	ws.Request().ParseForm()
 	pool := conns.PushBack(User{
 		UID:  ws.Request().URL.Query().Get("clientId"),
 		conn: ws})
@@ -248,7 +249,6 @@ func Echo(ws *websocket.Conn) {
 	defer conns.Remove(pool)
 	for {
 
-		fmt.Println(ws.Request())
 		var tmp string
 		reply := User{}
 		if err := websocket.Message.Receive(ws, &tmp); err != nil {
@@ -282,11 +282,16 @@ func Wellcome(conns *list.List, reply *User) {
 			panic("item not *websocket.Conn")
 		}
 		reply.Message.Content = "-----     wellcome " + reply.Name + " come in.     -----"
-		if reply.UID == usr.UID {
-			continue
-		} else {
-			websocket.Message.Send(usr.conn, reply)
+		userList[reply.Name] = reply.UID
+		reply.UserList = userList
+
+		r, err := json.Marshal(reply)
+		if err != nil {
+			fmt.Println(err)
+			return
 		}
+		websocket.Message.Send(usr.conn, string(r))
+
 	}
 }
 
@@ -298,10 +303,16 @@ func Leaving(conns *list.List, reply *User) {
 			panic("item not *websocket.Conn")
 		}
 		reply.Message.Content = "-----     " + reply.Name + " is leaved.     -----"
+		delete(reply.UserList, reply.Name)
 		if reply.UID == usr.UID {
 			continue
 		} else {
-			websocket.Message.Send(usr.conn, reply)
+			r, err := json.Marshal(reply)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			websocket.Message.Send(usr.conn, string(r))
 		}
 	}
 }
@@ -315,9 +326,21 @@ func SendMessage(conns *list.List, reply *User) {
 		}
 
 		if reply.Message.ToID != "all" && reply.Message.ToID == usr.UID && len(reply.Message.ToID) > 0 {
-			websocket.Message.Send(usr.conn, "This secret message from <font style='red'>"+reply.Name+"</font> say : "+reply.Message.Content)
+			reply.Message.Content = "This secret message from <font color='red'>" + reply.Name + "</font> say : " + reply.Message.Content
+			r, err := json.Marshal(reply)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			websocket.Message.Send(usr.conn, string(r))
 		} else {
-			websocket.Message.Send(usr.conn, reply.Name+" say : "+reply.Message.Content)
+			reply.Message.Content = reply.Name + " say : " + reply.Message.Content
+			r, err := json.Marshal(reply)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			websocket.Message.Send(usr.conn, string(r))
 		}
 	}
 }
