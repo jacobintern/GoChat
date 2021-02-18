@@ -1,10 +1,7 @@
 package main
 
 import (
-	"container/list"
 	"context"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -15,7 +12,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"go.mongodb.org/mongo-driver/x/mongo/driver/uuid"
 	"golang.org/x/net/websocket"
 )
 
@@ -29,25 +25,34 @@ type Acc struct {
 	Gender string `bson:"gender"`
 }
 
-// User is
-type User struct {
-	UID      string            `json:"client_id"`
-	Name     string            `json:"usr_name"`
-	Message  Message           `json:"msg"`
-	UserList map[string]string `json:"user_list"`
-
-	conn *websocket.Conn
+// UserInfo is
+type UserInfo struct {
+	UID  string `json:"uid"`
+	Name string `json:"name"`
 }
 
 // Message is
 type Message struct {
-	ToID    string `json:"to_id"`
-	Type    int    `json:"type"`
-	Content string `json:"content"`
+	User    *User            `json:"user"`
+	Type    int              `json:"type"`
+	Content string           `json:"content"`
+	Users   map[string]*User `json:"users"`
 }
 
-var conns = list.New()
-var userList = make(map[string]string)
+// User is
+type User struct {
+	UserInfo       *UserInfo     `json:"user_info"`
+	MessageChannel chan *Message `json:"-"`
+
+	conn *websocket.Conn
+}
+
+// Message type
+const (
+	MsgNormal = iota
+	MsgSystem
+	MsgSentUserList
+)
 
 // Home is home page
 func Home(w http.ResponseWriter, r *http.Request) {
@@ -161,19 +166,19 @@ func ValidUser(r *http.Request) string {
 }
 
 // GetUser is
-func GetUser(uid string) User {
+func GetUser(uid string) UserInfo {
 	chatAcc := Acc{}
 	collection := MongoDBcontext("chat_db", "chat_acc")
 	filter := bson.M{"_id": uid}
 	collection.Find(context.Background(), filter)
 	err := collection.FindOne(context.Background(), filter).Decode(&chatAcc)
 	if err == nil {
-		return User{
+		return UserInfo{
 			UID:  chatAcc.ID,
 			Name: chatAcc.Name,
 		}
 	}
-	return User{}
+	return UserInfo{}
 }
 
 // CreateUser is
@@ -193,130 +198,9 @@ func CreateUser(r *http.Request) *mongo.InsertOneResult {
 	return res
 }
 
-// GetUUID is
-func GetUUID() string {
-	uuid, err := uuid.New()
-
-	if err != nil {
-		log.Fatal(err)
-	}
-	var buf [36]byte
-	hex.Encode(buf[0:8], uuid[:4])
-	buf[8] = '-'
-	hex.Encode(buf[9:13], uuid[4:6])
-	buf[13] = '-'
-	hex.Encode(buf[14:18], uuid[6:8])
-	buf[18] = '-'
-	hex.Encode(buf[19:23], uuid[8:10])
-	buf[23] = '-'
-	hex.Encode(buf[24:], uuid[10:])
-
-	return string(buf[:])
-}
-
 // Echo is
 func Echo(ws *websocket.Conn) {
-	pool := conns.PushBack(User{
-		UID:  ws.Request().URL.Query().Get("clientId"),
-		conn: ws})
-	defer ws.Close()
-	defer conns.Remove(pool)
-	for {
 
-		var tmp string
-		reply := User{}
-		if err := websocket.Message.Receive(ws, &tmp); err != nil {
-			fmt.Println("Can't receive, reason : " + err.Error())
-			break
-		}
-		json.Unmarshal([]byte(tmp), &reply)
-
-		switch reply.Message.Type {
-		//enter
-		case 0:
-			Wellcome(conns, &reply)
-			break
-		//leave
-		case 1:
-			Leaving(conns, &reply)
-			break
-		//normal
-		case 2:
-			SendMessage(conns, &reply)
-			break
-		}
-	}
-}
-
-// Wellcome is
-func Wellcome(conns *list.List, reply *User) {
-	for item := conns.Front(); item != nil; item = item.Next() {
-		usr, ok := item.Value.(User)
-		if !ok {
-			panic("item not *websocket.Conn")
-		}
-		reply.Message.Content = "-----     wellcome " + reply.Name + " come in.     -----"
-		userList[reply.Name] = reply.UID
-		reply.UserList = userList
-
-		r, err := json.Marshal(reply)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
-		websocket.Message.Send(usr.conn, string(r))
-
-	}
-}
-
-// Leaving is
-func Leaving(conns *list.List, reply *User) {
-	for item := conns.Front(); item != nil; item = item.Next() {
-		usr, ok := item.Value.(User)
-		if !ok {
-			panic("item not *websocket.Conn")
-		}
-		reply.Message.Content = "-----     " + reply.Name + " is leaved.     -----"
-		delete(reply.UserList, reply.Name)
-		if reply.UID == usr.UID {
-			continue
-		} else {
-			r, err := json.Marshal(reply)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-			websocket.Message.Send(usr.conn, string(r))
-		}
-	}
-}
-
-// SendMessage is
-func SendMessage(conns *list.List, reply *User) {
-	for item := conns.Front(); item != nil; item = item.Next() {
-		usr, ok := item.Value.(User)
-		if !ok {
-			panic("item not *websocket.Conn")
-		}
-
-		if reply.Message.ToID != "all" && reply.Message.ToID == usr.UID && len(reply.Message.ToID) > 0 {
-			reply.Message.Content = "This secret message from <font color='red'>" + reply.Name + "</font> say : " + reply.Message.Content
-			r, err := json.Marshal(reply)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-			websocket.Message.Send(usr.conn, string(r))
-		} else {
-			reply.Message.Content = reply.Name + " say : " + reply.Message.Content
-			r, err := json.Marshal(reply)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-			websocket.Message.Send(usr.conn, string(r))
-		}
-	}
 }
 
 func main() {
