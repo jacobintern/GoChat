@@ -29,23 +29,12 @@ type Acc struct {
 	Gender string `bson:"gender"`
 }
 
-// Broadcaster is
-// type broadcaster struct {
-// 	users map[string]*User
-
-// 	// channel
-// 	enterChannel   chan *User
-// 	leaveChannel   chan *User
-// 	messageChannel chan *Message
-// }
-
 // User is
 type User struct {
 	UID      string            `json:"client_id"`
 	Name     string            `json:"usr_name"`
 	Message  Message           `json:"msg"`
 	UserList map[string]string `json:"user_list"`
-	//MessageChan chan *Message `json:"-"`
 
 	conn *websocket.Conn
 }
@@ -57,40 +46,8 @@ type Message struct {
 	Content string `json:"content"`
 }
 
-// Message is
-// type Message struct {
-// 	User  *User            `json:"user"`
-// 	Type  int              `json:"type"`
-// 	Msg   string           `json:"msg"`
-// 	Users map[string]*User `json:"users"`
-// }
-
 var conns = list.New()
 var userList = make(map[string]string)
-
-// Broadcaster is
-// var Broadcaster = &broadcaster{
-// 	users: make(map[string]*User),
-
-// 	enterChannel:   make(chan *User),
-// 	leaveChannel:   make(chan *User),
-// 	messageChannel: make(chan *Message),
-// }
-
-// func (b *broadcaster) Start() {
-// 	for {
-// 		select {
-// 		case user := <-b.enterChannel:
-// 			b.users[user.Name] = user
-// 		case user := <-b.leaveChannel:
-// 			delete(b.users, user.Name)
-// 		case msg := <-b.messageChannel:
-// 			for _, user := range b.users {
-// 				user.MessageChan <- msg
-// 			}
-// 		}
-// 	}
-// }
 
 // Home is home page
 func Home(w http.ResponseWriter, r *http.Request) {
@@ -105,9 +62,8 @@ func LoginPage(w http.ResponseWriter, r *http.Request) {
 		tmpl.Execute(w, nil)
 		break
 	case "POST":
-		if data := ValidUser(r); len(data.UID) > 0 {
-			tmpl := template.Must(template.ParseFiles("./views/chatroom.html"))
-			tmpl.Execute(w, data)
+		if uid := ValidUser(r); len(uid) > 0 {
+			http.Redirect(w, r, "/chatroom?uid="+uid, http.StatusSeeOther)
 		} else {
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 		}
@@ -153,8 +109,13 @@ func Register(w http.ResponseWriter, r *http.Request) {
 func ChatRoom(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		tmpl := template.Must(template.ParseFiles("./views/chatroom.html"))
-		tmpl.Execute(w, nil)
+		if uid := r.URL.Query().Get("uid"); len(uid) > 0 {
+			data := GetUser(uid)
+			tmpl := template.Must(template.ParseFiles("./views/chatroom.html"))
+			tmpl.Execute(w, data)
+		} else {
+			http.Redirect(w, r, "/login", http.StatusSeeOther)
+		}
 		break
 	case "POST":
 		fmt.Fprintf(w, "post")
@@ -184,20 +145,33 @@ func MongoDBcontext(dbName string, collectionName string) *mongo.Collection {
 }
 
 // ValidUser is checkout login user exist in mongodb
-func ValidUser(r *http.Request) User {
+func ValidUser(r *http.Request) string {
 	chatAcc := Acc{}
 	r.ParseForm()
 	acc := r.FormValue("acc")
 	pswd := r.FormValue("pswd")
 	collection := MongoDBcontext("chat_db", "chat_acc")
 	filter := bson.M{"acc": acc, "pswd": pswd}
+	collection.Find(context.Background(), filter)
 	err := collection.FindOne(context.Background(), filter).Decode(&chatAcc)
 	if err == nil {
-		res := User{
+		return chatAcc.ID
+	}
+	return ""
+}
+
+// GetUser is
+func GetUser(uid string) User {
+	chatAcc := Acc{}
+	collection := MongoDBcontext("chat_db", "chat_acc")
+	filter := bson.M{"_id": uid}
+	collection.Find(context.Background(), filter)
+	err := collection.FindOne(context.Background(), filter).Decode(&chatAcc)
+	if err == nil {
+		return User{
 			UID:  chatAcc.ID,
 			Name: chatAcc.Name,
 		}
-		return res
 	}
 	return User{}
 }
@@ -346,8 +320,6 @@ func SendMessage(conns *list.List, reply *User) {
 }
 
 func main() {
-
-	//go Broadcaster.Start()
 	// page
 	http.HandleFunc("/", Home)
 	http.HandleFunc("/login", LoginPage)
