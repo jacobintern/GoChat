@@ -47,12 +47,28 @@ type User struct {
 	conn *websocket.Conn
 }
 
+// Broadcaster is
+type Broadcaster struct {
+	users map[string]*User
+
+	enterChannel   chan *User
+	leaveChannel   chan *User
+	messageChannel chan *User
+}
+
 // Message type
 const (
 	MsgNormal = iota
 	MsgSystem
 	MsgSentUserList
 )
+
+var broadcaster = &Broadcaster{
+	users:          make(map[string]*User),
+	enterChannel:   make(chan *User),
+	leaveChannel:   make(chan *User),
+	messageChannel: make(chan *User),
+}
 
 // Home is home page
 func Home(w http.ResponseWriter, r *http.Request) {
@@ -198,12 +214,24 @@ func CreateUser(r *http.Request) *mongo.InsertOneResult {
 	return res
 }
 
+// Start is
+func (b *Broadcaster) Start() {
+	for {
+		select {
+		case user := <-b.enterChannel:
+			b.users[user.UserInfo.Name] = user
+		}
+	}
+}
+
 // Echo is
 func Echo(ws *websocket.Conn) {
 
 }
 
 func main() {
+
+	go broadcaster.Start()
 	// page
 	http.HandleFunc("/", Home)
 	http.HandleFunc("/login", LoginPage)
