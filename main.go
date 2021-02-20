@@ -185,9 +185,9 @@ func ValidUser(r *http.Request) string {
 func GetUser(uid string) UserInfo {
 	chatAcc := Acc{}
 	collection := MongoDBcontext("chat_db", "chat_acc")
-	filter := bson.M{"_id": uid}
-	collection.Find(context.Background(), filter)
-	err := collection.FindOne(context.Background(), filter).Decode(&chatAcc)
+	objID, err := primitive.ObjectIDFromHex(uid)
+	filter := bson.M{"_id": objID}
+	err = collection.FindOne(context.Background(), filter).Decode(&chatAcc)
 	if err == nil {
 		return UserInfo{
 			UID:  chatAcc.ID,
@@ -214,19 +214,43 @@ func CreateUser(r *http.Request) *mongo.InsertOneResult {
 	return res
 }
 
+// NewUser is
+func NewUser(conn *websocket.Conn) *User {
+	userInfo := GetUser(conn.Request().URL.Query().Get("clientId"))
+	user := &User{
+		UserInfo:       &userInfo,
+		MessageChannel: make(chan *Message),
+		conn:           conn,
+	}
+	return user
+}
+
+// Wellcome is
+func (u *User) Wellcome(ctx context.Context) {
+	for msg := range u.MessageChannel {
+		websocket.Message.Send(u.conn, msg)
+	}
+}
+
 // Start is
 func (b *Broadcaster) Start() {
 	for {
 		select {
 		case user := <-b.enterChannel:
+			// message := &Message{
+			// 	User:    user,
+			// 	Type:    2,
+			// 	Content: "----- Wellcome : " + user.UserInfo.Name,
+			// }
 			b.users[user.UserInfo.Name] = user
 		}
 	}
 }
 
 // Echo is
-func Echo(ws *websocket.Conn) {
-
+func Echo(conn *websocket.Conn) {
+	user := NewUser(conn)
+	go user.Wellcome(conn.Request().Context())
 }
 
 func main() {
