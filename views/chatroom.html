@@ -63,37 +63,37 @@
             let wsuri = window.location.host + '/ws';
             socket = new WebSocket('ws://' + wsuri + "?clientId=" + $('#uuid').text());
             socket.onopen = function (e) {
-                let data = GetData(0);
-                socket.send(data)
+                //let data = GetData(0);
+                //socket.send(data)
             }
 
             socket.onmessage = function (e) {
-                let data = JSON.parse(e.data);
-                let userBox = $("#box");
-                let msgBox = $("#messageList");
-                let list = $("#list");
-                switch (data.msg.type) {
-                    case 0:
-                        userBox.empty();
-                        list.empty();
-                        userBox.append("<option value='all'> 所有人 </option>");
-                        $.each(data.user_list, function (index, value) {
-                            userBox.append("<option value='" + value + "'>" + index + "</option>");
-                            list.append("<li>" + index + "</li>");
-                        });
-                        msgBox.append("<li>" + data.msg.content + "</li>");
-                        msgBox.scrollTop = msgBox.scrollHeight;
-                        break;
-                    default:
-                        msgBox.append("<li>" + data.msg.content + "</li>");
-                        msgBox.scrollTop = msgBox.scrollHeight;
-                        break;
-                }
+                // let data = JSON.parse(e.data);
+                // let userBox = $("#box");
+                // let msgBox = $("#messageList");
+                // let list = $("#list");
+                // switch (data.msg.type) {
+                //     case 0:
+                //         userBox.empty();
+                //         list.empty();
+                //         userBox.append("<option value='all'> 所有人 </option>");
+                //         $.each(data.user_list, function (index, value) {
+                //             userBox.append("<option value='" + value + "'>" + index + "</option>");
+                //             list.append("<li>" + index + "</li>");
+                //         });
+                //         msgBox.append("<li>" + data.msg.content + "</li>");
+                //         msgBox.scrollTop = msgBox.scrollHeight;
+                //         break;
+                //     default:
+                //         msgBox.append("<li>" + data.msg.content + "</li>");
+                //         msgBox.scrollTop = msgBox.scrollHeight;
+                //         break;
+                // }
             }
 
             socket.onclose = function (e) {
-                let data = GetData(1);
-                socket.send(data)
+                // let data = GetData(1);
+                // socket.send(data)
             }
 
             $('#message').keypress(function (e) {
