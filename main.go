@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -33,10 +34,9 @@ type UserInfo struct {
 
 // Message is
 type Message struct {
-	User    *User            `json:"user"`
-	Type    int              `json:"type"`
-	Content string           `json:"content"`
-	Users   map[string]*User `json:"users"`
+	User    *User  `json:"user"`
+	Type    int    `json:"type"`
+	Content string `json:"content"`
 }
 
 // User is
@@ -53,7 +53,7 @@ type Broadcaster struct {
 
 	enterChannel   chan *User
 	leaveChannel   chan *User
-	messageChannel chan *User
+	messageChannel chan *Message
 }
 
 // Message type
@@ -67,7 +67,49 @@ var broadcaster = &Broadcaster{
 	users:          make(map[string]*User),
 	enterChannel:   make(chan *User),
 	leaveChannel:   make(chan *User),
-	messageChannel: make(chan *User),
+	messageChannel: make(chan *Message),
+}
+
+// NewMessage is
+func NewMessage(user *User, content string) *Message {
+	return &Message{
+		User:    user,
+		Type:    MsgNormal,
+		Content: content,
+	}
+}
+
+// NewUserEnterMessage is
+func NewUserEnterMessage(user *User) *Message {
+	return &Message{
+		User:    user,
+		Type:    MsgSentUserList,
+		Content: user.UserInfo.Name + " 加入了聊天室",
+	}
+}
+
+// NewUserLeaveMessage is
+func NewUserLeaveMessage(user *User) *Message {
+	return &Message{
+		User:    user,
+		Type:    MsgSentUserList,
+		Content: user.UserInfo.Name + " 離開了聊天室",
+	}
+}
+
+// UserEntering is
+func (b *Broadcaster) UserEntering(u *User) {
+	b.enterChannel <- u
+}
+
+// UserLeaving is
+func (b *Broadcaster) UserLeaving(u *User) {
+	b.leaveChannel <- u
+}
+
+// Broadcast is
+func (b *Broadcaster) Broadcast(msg *Message) {
+	b.messageChannel <- msg
 }
 
 // Home is home page
@@ -214,6 +256,18 @@ func CreateUser(r *http.Request) *mongo.InsertOneResult {
 	return res
 }
 
+// SendMessage is
+func (u *User) SendMessage() {
+	for msg := range u.MessageChannel {
+		r, err := json.Marshal(msg)
+		if err != nil {
+			fmt.Println(err)
+			log.Fatal(err)
+		}
+		websocket.Message.Send(u.conn, string(r))
+	}
+}
+
 // NewUser is
 func NewUser(conn *websocket.Conn) *User {
 	userInfo := GetUser(conn.Request().URL.Query().Get("clientId"))
@@ -225,24 +279,16 @@ func NewUser(conn *websocket.Conn) *User {
 	return user
 }
 
-// Wellcome is
-func (u *User) Wellcome(ctx context.Context) {
-	for msg := range u.MessageChannel {
-		websocket.Message.Send(u.conn, msg)
-	}
-}
-
 // Start is
 func (b *Broadcaster) Start() {
 	for {
 		select {
 		case user := <-b.enterChannel:
-			// message := &Message{
-			// 	User:    user,
-			// 	Type:    2,
-			// 	Content: "----- Wellcome : " + user.UserInfo.Name,
-			// }
 			b.users[user.UserInfo.Name] = user
+		case msg := <-b.messageChannel:
+			for _, user := range b.users {
+				user.MessageChannel <- msg
+			}
 		}
 	}
 }
@@ -250,18 +296,27 @@ func (b *Broadcaster) Start() {
 // Echo is
 func Echo(conn *websocket.Conn) {
 	user := NewUser(conn)
-	go user.Wellcome(conn.Request().Context())
+	go user.SendMessage()
+
+	msg := NewUserEnterMessage(user)
+	broadcaster.Broadcast(msg)
+	broadcaster.UserEntering(user)
+}
+
+// RegisterchatHandler is
+func RegisterchatHandler() {
+	go broadcaster.Start()
+
+	http.Handle("/ws", websocket.Handler(Echo))
 }
 
 func main() {
-
-	go broadcaster.Start()
 	// page
 	http.HandleFunc("/", Home)
 	http.HandleFunc("/login", LoginPage)
 	http.HandleFunc("/register", Register)
 	http.HandleFunc("/chatroom", ChatRoom)
-	http.Handle("/ws", websocket.Handler(Echo))
+	RegisterchatHandler()
 
 	// static
 	fs := http.FileServer(http.Dir("./static"))
