@@ -51,9 +51,11 @@ type User struct {
 type Broadcaster struct {
 	users map[string]*User
 
-	enterChannel   chan *User
-	leaveChannel   chan *User
-	messageChannel chan *Message
+	enterChannel        chan *User
+	leaveChannel        chan *User
+	messageChannel      chan *Message
+	requestUsersChannel chan struct{}
+	usersChannel        chan []*UserInfo
 }
 
 // Message type
@@ -64,10 +66,12 @@ const (
 )
 
 var broadcaster = &Broadcaster{
-	users:          make(map[string]*User),
-	enterChannel:   make(chan *User),
-	leaveChannel:   make(chan *User),
-	messageChannel: make(chan *Message),
+	users:               make(map[string]*User),
+	enterChannel:        make(chan *User),
+	leaveChannel:        make(chan *User),
+	messageChannel:      make(chan *Message),
+	requestUsersChannel: make(chan struct{}),
+	usersChannel:        make(chan []*UserInfo),
 }
 
 // NewMessage is
@@ -97,6 +101,17 @@ func NewUserLeaveMessage(user *User) *Message {
 	}
 }
 
+// NewUser is
+func NewUser(conn *websocket.Conn) *User {
+	userInfo := GetUser(conn.Request().URL.Query().Get("clientId"))
+	user := &User{
+		UserInfo:       &userInfo,
+		MessageChannel: make(chan *Message),
+		conn:           conn,
+	}
+	return user
+}
+
 // UserEntering is
 func (b *Broadcaster) UserEntering(u *User) {
 	b.enterChannel <- u
@@ -110,6 +125,39 @@ func (b *Broadcaster) UserLeaving(u *User) {
 // Broadcast is
 func (b *Broadcaster) Broadcast(msg *Message) {
 	b.messageChannel <- msg
+}
+
+// SendMessage is
+func (u *User) SendMessage() {
+	for msg := range u.MessageChannel {
+		r, err := json.Marshal(msg)
+		if err != nil {
+			fmt.Println(err)
+			log.Fatal(err)
+		}
+		websocket.Message.Send(u.conn, string(r))
+	}
+}
+
+// ReceiveMessage is
+func (u *User) ReceiveMessage() error {
+	for {
+		var msg string
+		if err := websocket.Message.Receive(u.conn, &msg); err != nil {
+			return err
+		}
+		// 解析json
+
+		// 内容发送到聊天室
+		sendMsg := NewMessage(u, msg)
+		broadcaster.Broadcast(sendMsg)
+	}
+}
+
+// GetUserList is
+func (b *Broadcaster) GetUserList() []*UserInfo {
+	b.requestUsersChannel <- struct{}{}
+	return <-b.usersChannel
 }
 
 // Home is home page
@@ -256,29 +304,6 @@ func CreateUser(r *http.Request) *mongo.InsertOneResult {
 	return res
 }
 
-// SendMessage is
-func (u *User) SendMessage() {
-	for msg := range u.MessageChannel {
-		r, err := json.Marshal(msg)
-		if err != nil {
-			fmt.Println(err)
-			log.Fatal(err)
-		}
-		websocket.Message.Send(u.conn, string(r))
-	}
-}
-
-// NewUser is
-func NewUser(conn *websocket.Conn) *User {
-	userInfo := GetUser(conn.Request().URL.Query().Get("clientId"))
-	user := &User{
-		UserInfo:       &userInfo,
-		MessageChannel: make(chan *Message),
-		conn:           conn,
-	}
-	return user
-}
-
 // Start is
 func (b *Broadcaster) Start() {
 	for {
@@ -289,18 +314,46 @@ func (b *Broadcaster) Start() {
 			for _, user := range b.users {
 				user.MessageChannel <- msg
 			}
+		case user := <-b.leaveChannel:
+			delete(b.users, user.UserInfo.Name)
+			close(user.MessageChannel)
+		case <-b.requestUsersChannel:
+			userList := make([]*UserInfo, 0, len(b.users))
+			for _, user := range b.users {
+				userList = append(userList, user.UserInfo)
+			}
+			b.usersChannel <- userList
 		}
 	}
 }
 
 // Echo is
 func Echo(conn *websocket.Conn) {
+	// 建立使用者
 	user := NewUser(conn)
+	// 建立傳送訊息通道 goroutine監聽
 	go user.SendMessage()
 
+	// 使用者進入
 	msg := NewUserEnterMessage(user)
-	broadcaster.Broadcast(msg)
 	broadcaster.UserEntering(user)
+	broadcaster.Broadcast(msg)
+
+	// 訊息接收並傳送給其他使用者
+	err := user.ReceiveMessage()
+
+	// 使用者離開
+	msg = NewUserLeaveMessage(user)
+	broadcaster.UserLeaving(user)
+	broadcaster.Broadcast(msg)
+
+	if err == nil {
+		conn.Close()
+	} else {
+		log.Println("read from client error:", err)
+		conn.Close()
+	}
+
 }
 
 // RegisterchatHandler is
@@ -310,12 +363,25 @@ func RegisterchatHandler() {
 	http.Handle("/ws", websocket.Handler(Echo))
 }
 
+// GetUsers is
+func GetUsers(w http.ResponseWriter, req *http.Request) {
+	userList := broadcaster.GetUserList()
+	r, err := json.Marshal(userList)
+
+	if err != nil {
+		fmt.Println(err.Error())
+	} else {
+		fmt.Fprint(w, string(r))
+	}
+}
+
 func main() {
 	// page
 	http.HandleFunc("/", Home)
 	http.HandleFunc("/login", LoginPage)
 	http.HandleFunc("/register", Register)
 	http.HandleFunc("/chatroom", ChatRoom)
+	http.HandleFunc("/GetUserList", GetUsers)
 	RegisterchatHandler()
 
 	// static
