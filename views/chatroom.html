@@ -61,12 +61,13 @@
         var socket = null;
         $(function () {
             let wsuri = window.location.host + '/ws';
+            let userBox = $("#box");
+            let msgBox = $("#messageList");
+            let list = $("#list");
+
             socket = new WebSocket('ws://' + wsuri + "?clientId=" + $('#uuid').text());
             socket.onmessage = function (e) {
                 let data = JSON.parse(e.data);
-                let userBox = $("#box");
-                let msgBox = $("#messageList");
-                let list = $("#list");
                 switch (data.type) {
                     case 2:
                         userBox.empty();
@@ -93,15 +94,35 @@
             $('#message').keypress(function (e) {
                 let key = e.which;
                 if (key == 13) {
-                    socket.send($("#message").val());
+                    socket.send(getData());
                     $("#message").val('').focus();
                 }
             });
 
             $("#send").click(function () {
-                socket.send($("#message").val());
+                socket.send(getData());
                 $("#message").val('').focus();
             });
+
+            function getData() {
+                var data;
+                if (userBox.val() != "all") {
+                    data = {
+                        content: $("#message").val(),
+                        to_user: {
+                            uid: $("#box option:selected").val(),
+                            name: $("#box option:selected").text()
+                        }
+                    };
+                }
+                else {
+                    data = {
+                        content: $("#message").val()
+                    };
+                }
+                return JSON.stringify(data);
+            }
+
         })
     </script>
 </body>
