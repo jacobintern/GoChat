@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"text/template"
 	"time"
 
@@ -34,9 +35,10 @@ type UserInfo struct {
 
 // Message is
 type Message struct {
-	User    *User  `json:"user"`
-	Type    int    `json:"type"`
-	Content string `json:"content"`
+	User    *User     `json:"user"`
+	Type    int       `json:"type"`
+	Content string    `json:"content"`
+	ToUser  *UserInfo `json:"to_user"`
 }
 
 // User is
@@ -75,11 +77,12 @@ var broadcaster = &Broadcaster{
 }
 
 // NewMessage is
-func NewMessage(user *User, content string) *Message {
+func NewMessage(user *User, content string, toUser *UserInfo) *Message {
 	return &Message{
 		User:    user,
 		Type:    MsgNormal,
 		Content: content,
+		ToUser:  toUser,
 	}
 }
 
@@ -130,26 +133,43 @@ func (b *Broadcaster) Broadcast(msg *Message) {
 // SendMessage is
 func (u *User) SendMessage() {
 	for msg := range u.MessageChannel {
-		r, err := json.Marshal(msg)
-		if err != nil {
-			fmt.Println(err)
-			log.Fatal(err)
+		if msg.ToUser != nil {
+			if msg.ToUser.UID == u.UserInfo.UID {
+				msg.Content = "This secret message is from <font color='red'>" + msg.User.UserInfo.Name + "</font> say : " + msg.Content + strconv.Itoa(1)
+			}
+			if msg.User.UserInfo.UID == u.UserInfo.UID {
+				msg.Content = "You sent a serect to <font color='red'>" + msg.ToUser.Name + "</font> say : " + msg.Content
+			}
+			r, err := json.Marshal(msg)
+			if err != nil {
+				fmt.Println(err)
+				log.Fatal(err)
+			}
+			websocket.Message.Send(u.conn, string(r))
+		} else {
+			r, err := json.Marshal(msg)
+			if err != nil {
+				fmt.Println(err)
+				log.Fatal(err)
+			}
+			websocket.Message.Send(u.conn, string(r))
 		}
-		websocket.Message.Send(u.conn, string(r))
 	}
 }
 
 // ReceiveMessage is
 func (u *User) ReceiveMessage() error {
 	for {
-		var msg string
-		if err := websocket.Message.Receive(u.conn, &msg); err != nil {
+		var tmp string
+		reply := Message{}
+		if err := websocket.Message.Receive(u.conn, &tmp); err != nil {
 			return err
 		}
 		// 解析json
+		json.Unmarshal([]byte(tmp), &reply)
 
 		// 内容发送到聊天室
-		sendMsg := NewMessage(u, msg)
+		sendMsg := NewMessage(u, reply.Content, reply.ToUser)
 		broadcaster.Broadcast(sendMsg)
 	}
 }
