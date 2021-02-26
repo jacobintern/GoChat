@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 	"text/template"
 	"time"
 
@@ -135,17 +134,33 @@ func (u *User) SendMessage() {
 	for msg := range u.MessageChannel {
 		if msg.ToUser != nil {
 			if msg.ToUser.UID == u.UserInfo.UID {
-				msg.Content = "This secret message is from <font color='red'>" + msg.User.UserInfo.Name + "</font> say : " + msg.Content + strconv.Itoa(1)
+				tmp := Message{
+					Content: "This secret message comes from <font color='red'>" + u.UserInfo.Name + "</font> says : " + msg.Content,
+					ToUser:  msg.ToUser,
+					User:    msg.User,
+					Type:    msg.Type,
+				}
+
+				r, err := json.Marshal(tmp)
+				if err != nil {
+					fmt.Println(err)
+					log.Fatal(err)
+				}
+				websocket.Message.Send(u.conn, string(r))
+			} else if msg.User.UserInfo.UID == u.UserInfo.UID {
+				tmp := Message{
+					Content: "You sent a secret message to <font color='red'>" + msg.ToUser.Name + "</font> says : " + msg.Content,
+					ToUser:  msg.ToUser,
+					User:    msg.User,
+					Type:    msg.Type,
+				}
+				r, err := json.Marshal(tmp)
+				if err != nil {
+					fmt.Println(err)
+					log.Fatal(err)
+				}
+				websocket.Message.Send(u.conn, string(r))
 			}
-			if msg.User.UserInfo.UID == u.UserInfo.UID {
-				msg.Content = "You sent a serect to <font color='red'>" + msg.ToUser.Name + "</font> say : " + msg.Content
-			}
-			r, err := json.Marshal(msg)
-			if err != nil {
-				fmt.Println(err)
-				log.Fatal(err)
-			}
-			websocket.Message.Send(u.conn, string(r))
 		} else {
 			r, err := json.Marshal(msg)
 			if err != nil {
