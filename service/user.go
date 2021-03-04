@@ -9,6 +9,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/net/websocket"
 )
 
@@ -127,4 +128,21 @@ func ValidUser(r *http.Request) string {
 		return chatAcc.ID
 	}
 	return ""
+}
+
+// CreateUser is
+func CreateUser(r *http.Request) *mongo.InsertOneResult {
+	r.ParseForm()
+	collection := MongoDBcontext("chat_db", "chat_acc")
+	res, err := collection.InsertOne(context.Background(), Acc{
+		Acc:    r.FormValue("acc"),
+		Pswd:   r.FormValue("pswd"),
+		Name:   r.FormValue("name"),
+		Email:  r.FormValue("email"),
+		Gender: r.FormValue("gender"),
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	return res
 }
