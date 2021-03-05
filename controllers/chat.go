@@ -69,8 +69,9 @@ func Register(w http.ResponseWriter, r *http.Request) {
 func ChatRoom(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		if uid := r.URL.Query().Get("uid"); len(uid) > 0 {
-			data := service.GetUser(uid)
+		u := service.UID{UID: r.URL.Query().Get("uid")}
+		if len(u.UID) > 0 {
+			data := u.GetUser()
 			tmpl := template.Must(template.ParseFiles("./views/chatroom.html"))
 			tmpl.Execute(w, data)
 		} else {

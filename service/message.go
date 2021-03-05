@@ -16,25 +16,25 @@ type Message struct {
 }
 
 // NewMessage is
-func NewMessage(user *User, content string, toUser *UserInfo) *Message {
-	if toUser == nil {
+func (m *Message) NewMessage() *Message {
+	if m.ToUser == nil {
 		return &Message{
-			User:    user,
+			User:    m.User,
 			Type:    MsgNormal,
-			Content: user.UserInfo.Name + " says : " + content,
-			ToUser:  toUser,
+			Content: m.User.UserInfo.Name + " says : " + m.Content,
+			ToUser:  m.ToUser,
 		}
 	}
 	return &Message{
-		User:    user,
+		User:    m.User,
 		Type:    MsgNormal,
-		Content: content,
-		ToUser:  toUser,
+		Content: m.Content,
+		ToUser:  m.ToUser,
 	}
 }
 
 // NewUserEnterMessage is
-func NewUserEnterMessage(user *User) *Message {
+func (user *User) NewUserEnterMessage() *Message {
 	return &Message{
 		User:    user,
 		Type:    MsgSentUserList,
@@ -43,7 +43,7 @@ func NewUserEnterMessage(user *User) *Message {
 }
 
 // NewUserLeaveMessage is
-func NewUserLeaveMessage(user *User) *Message {
+func (user *User) NewUserLeaveMessage() *Message {
 	return &Message{
 		User:    user,
 		Type:    MsgSentUserList,
