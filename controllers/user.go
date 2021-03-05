@@ -22,5 +22,5 @@ func GetUsers(w http.ResponseWriter, req *http.Request) {
 
 // UserAPI is
 func UserAPI() {
-	http.HandleFunc("api/GetUserList", GetUsers)
+	http.HandleFunc("/api/GetUserList", GetUsers)
 }

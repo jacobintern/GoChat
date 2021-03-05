@@ -19,15 +19,21 @@ type Acc struct {
 	Gender string `bson:"gender"`
 }
 
+// ConnectionInfo is
+type ConnectionInfo struct {
+	DBName         string
+	CollectionName string
+}
+
 // MongoDBcontext is connect setting
-func MongoDBcontext(dbName string, collectionName string) *mongo.Collection {
+func (c ConnectionInfo) MongoDBcontext() *mongo.Collection {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(
-		"mongodb+srv://j_dev:zHYJQ2jc7UAqHThV@jdev.y4x5s.gcp.mongodb.net/"+dbName+"?retryWrites=true&w=majority",
+		"mongodb+srv://j_dev:zHYJQ2jc7UAqHThV@jdev.y4x5s.gcp.mongodb.net/"+c.DBName+"?retryWrites=true&w=majority",
 	))
 	if err != nil {
 		log.Fatal(err)
 	}
-	return client.Database(dbName).Collection(collectionName)
+	return client.Database(c.DBName).Collection(c.CollectionName)
 }

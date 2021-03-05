@@ -13,12 +13,17 @@ import (
 	"golang.org/x/net/websocket"
 )
 
+// UID is
+type UID struct {
+	UID string
+}
+
 // User is
 type User struct {
 	UserInfo       *UserInfo     `json:"user_info"`
 	MessageChannel chan *Message `json:"-"`
 
-	conn *websocket.Conn
+	Conn *websocket.Conn
 }
 
 // UserInfo is
@@ -28,14 +33,11 @@ type UserInfo struct {
 }
 
 // NewUser is
-func NewUser(conn *websocket.Conn) *User {
-	userInfo := GetUser(conn.Request().URL.Query().Get("clientId"))
-	user := &User{
-		UserInfo:       &userInfo,
-		MessageChannel: make(chan *Message),
-		conn:           conn,
-	}
-	return user
+func (u *User) NewUser() *User {
+	uid := UID{UID: u.Conn.Request().URL.Query().Get("clientId")}
+	u.UserInfo = uid.GetUser()
+	u.MessageChannel = make(chan *Message)
+	return u
 }
 
 // SendMessage is
@@ -44,7 +46,7 @@ func (u *User) SendMessage() {
 		if msg.ToUser != nil {
 			if msg.ToUser.UID == u.UserInfo.UID {
 				tmp := Message{
-					Content: "This secret message comes from <font color='red'>" + u.UserInfo.Name + "</font> says : " + msg.Content,
+					Content: "This secret message comes from <font color='red'>" + msg.User.UserInfo.Name + "</font> says : " + msg.Content,
 					ToUser:  msg.ToUser,
 					User:    msg.User,
 					Type:    msg.Type,
@@ -55,7 +57,7 @@ func (u *User) SendMessage() {
 					fmt.Println(err)
 					log.Fatal(err)
 				}
-				websocket.Message.Send(u.conn, string(r))
+				websocket.Message.Send(u.Conn, string(r))
 			} else if msg.User.UserInfo.UID == u.UserInfo.UID {
 				tmp := Message{
 					Content: "You sent a secret message to <font color='red'>" + msg.ToUser.Name + "</font> says : " + msg.Content,
@@ -68,7 +70,7 @@ func (u *User) SendMessage() {
 					fmt.Println(err)
 					log.Fatal(err)
 				}
-				websocket.Message.Send(u.conn, string(r))
+				websocket.Message.Send(u.Conn, string(r))
 			}
 		} else {
 			r, err := json.Marshal(msg)
@@ -76,7 +78,7 @@ func (u *User) SendMessage() {
 				fmt.Println(err)
 				log.Fatal(err)
 			}
-			websocket.Message.Send(u.conn, string(r))
+			websocket.Message.Send(u.Conn, string(r))
 		}
 	}
 }
@@ -86,41 +88,50 @@ func (u *User) ReceiveMessage() error {
 	for {
 		var tmp string
 		reply := Message{}
-		if err := websocket.Message.Receive(u.conn, &tmp); err != nil {
+		if err := websocket.Message.Receive(u.Conn, &tmp); err != nil {
 			return err
 		}
+		reply.User = u
 		// 解析json
 		json.Unmarshal([]byte(tmp), &reply)
 
 		// 内容发送到聊天室
-		sendMsg := NewMessage(u, reply.Content, reply.ToUser)
+		sendMsg := reply.NewMessage()
 		Broadcaster.Broadcast(sendMsg)
 	}
 }
 
 // GetUser is
-func GetUser(uid string) UserInfo {
+func (u UID) GetUser() *UserInfo {
 	chatAcc := Acc{}
-	collection := MongoDBcontext("chat_db", "chat_acc")
-	objID, err := primitive.ObjectIDFromHex(uid)
+	mongoDB := ConnectionInfo{
+		DBName:         "chat_db",
+		CollectionName: "chat_acc",
+	}
+	collection := mongoDB.MongoDBcontext()
+	objID, err := primitive.ObjectIDFromHex(u.UID)
 	filter := bson.M{"_id": objID}
 	err = collection.FindOne(context.Background(), filter).Decode(&chatAcc)
 	if err == nil {
-		return UserInfo{
+		return &UserInfo{
 			UID:  chatAcc.ID,
 			Name: chatAcc.Name,
 		}
 	}
-	return UserInfo{}
+	return &UserInfo{}
 }
 
 // ValidUser is checkout login user exist in mongodb
 func ValidUser(r *http.Request) string {
 	chatAcc := Acc{}
+	mongoDB := ConnectionInfo{
+		DBName:         "chat_db",
+		CollectionName: "chat_acc",
+	}
 	r.ParseForm()
 	acc := r.FormValue("acc")
 	pswd := r.FormValue("pswd")
-	collection := MongoDBcontext("chat_db", "chat_acc")
+	collection := mongoDB.MongoDBcontext()
 	filter := bson.M{"acc": acc, "pswd": pswd}
 	collection.Find(context.Background(), filter)
 	err := collection.FindOne(context.Background(), filter).Decode(&chatAcc)
@@ -132,8 +143,12 @@ func ValidUser(r *http.Request) string {
 
 // CreateUser is
 func CreateUser(r *http.Request) *mongo.InsertOneResult {
+	mongoDB := ConnectionInfo{
+		DBName:         "chat_db",
+		CollectionName: "chat_acc",
+	}
 	r.ParseForm()
-	collection := MongoDBcontext("chat_db", "chat_acc")
+	collection := mongoDB.MongoDBcontext()
 	res, err := collection.InsertOne(context.Background(), Acc{
 		Acc:    r.FormValue("acc"),
 		Pswd:   r.FormValue("pswd"),
