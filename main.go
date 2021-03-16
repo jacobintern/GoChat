@@ -12,6 +12,7 @@ func main() {
 	controllers.RegisterPage()
 	// api
 	controllers.UserAPI()
+	controllers.GetCookies()
 	// websocke
 	controllers.RegisterchatHandler()
 
