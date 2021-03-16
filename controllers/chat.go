@@ -22,8 +22,9 @@ func LoginPage(w http.ResponseWriter, r *http.Request) {
 		tmpl.Execute(w, nil)
 		break
 	case "POST":
-		if uid := service.ValidUser(r); len(uid) > 0 {
-			http.Redirect(w, r, "/chatroom?uid="+uid, http.StatusSeeOther)
+		if acc := service.ValidUser(r); acc != nil {
+			acc.SetUsrCookie(w)
+			http.Redirect(w, r, "/chatroom?uid="+acc.ID, http.StatusSeeOther)
 		} else {
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
 		}

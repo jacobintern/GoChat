@@ -122,7 +122,7 @@ func (u UID) GetUser() *UserInfo {
 }
 
 // ValidUser is checkout login user exist in mongodb
-func ValidUser(r *http.Request) string {
+func ValidUser(r *http.Request) *Acc {
 	chatAcc := Acc{}
 	mongoDB := ConnectionInfo{
 		DBName:         "chat_db",
@@ -136,9 +136,9 @@ func ValidUser(r *http.Request) string {
 	collection.Find(context.Background(), filter)
 	err := collection.FindOne(context.Background(), filter).Decode(&chatAcc)
 	if err == nil {
-		return chatAcc.ID
+		return &chatAcc
 	}
-	return ""
+	return &Acc{}
 }
 
 // CreateUser is
@@ -160,4 +160,18 @@ func CreateUser(r *http.Request) *mongo.InsertOneResult {
 		log.Fatal(err)
 	}
 	return res
+}
+
+// SetUsrCookie is
+func (acc *Acc) SetUsrCookie(w http.ResponseWriter) {
+	// cookie := http.Cookie{
+	// 	Name:    uuid.New().String(),
+	// 	Value:   acc.ID,
+	// 	Expires: time.Now().AddDate(0, 0, 1),
+	// }
+	cookie := http.Cookie{
+		Name:  acc.Acc,
+		Value: acc.ID,
+	}
+	http.SetCookie(w, &cookie)
 }
