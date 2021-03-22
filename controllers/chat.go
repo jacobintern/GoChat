@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"text/template"
+	"time"
 
 	"github.com/jacobintern/GoChat/service"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -11,7 +12,7 @@ import (
 
 // HomePage is home page
 func HomePage(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "hello jacob")
+	fmt.Fprintf(w, "hello jacob"+time.Now().String())
 }
 
 // LoginPage is login page
@@ -95,7 +96,6 @@ func ChatRoom(w http.ResponseWriter, r *http.Request) {
 
 // RegisterPage is
 func RegisterPage() {
-	http.HandleFunc("/", HomePage)
 	http.HandleFunc("/login", LoginPage)
 	http.HandleFunc("/register", Register)
 	http.HandleFunc("/chatroom", ChatRoom)

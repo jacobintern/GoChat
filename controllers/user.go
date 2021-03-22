@@ -21,20 +21,13 @@ func GetUsers(w http.ResponseWriter, req *http.Request) {
 
 // GetUsrCookies is
 func GetUsrCookies(w http.ResponseWriter, req *http.Request) {
+	// for _, cookie := range req.Cookies() {
+	// 	fmt.Println("Found a cookie named:", cookie.Name)
+	// 	fmt.Println("Found a cookie expired:", cookie.Expires)
+	// }
 	r, err := json.Marshal(req.Cookies())
-
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 	fmt.Fprint(w, string(r))
-}
-
-// UserAPI is
-func UserAPI() {
-	http.HandleFunc("/api/GetUserList", GetUsers)
-}
-
-// GetCookies is
-func GetCookies() {
-	http.HandleFunc("/api/GetCookies", GetUsrCookies)
 }
