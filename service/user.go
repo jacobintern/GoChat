@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
+	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -164,14 +166,10 @@ func CreateUser(r *http.Request) *mongo.InsertOneResult {
 
 // SetUsrCookie is
 func (acc *Acc) SetUsrCookie(w http.ResponseWriter) {
-	// cookie := http.Cookie{
-	// 	Name:    uuid.New().String(),
-	// 	Value:   acc.ID,
-	// 	Expires: time.Now().AddDate(0, 0, 1),
-	// }
 	cookie := http.Cookie{
-		Name:  acc.Acc,
-		Value: acc.ID,
+		Name:    uuid.New().String(),
+		Value:   acc.ID,
+		Expires: time.Now().Add(time.Minute * time.Duration(5)),
 	}
 	http.SetCookie(w, &cookie)
 }
