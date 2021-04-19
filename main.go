@@ -16,7 +16,7 @@ func main() {
 	// api
 	r.HandleFunc("/api/GetUserList", controllers.GetUsers).Methods(http.MethodGet)
 	r.HandleFunc("/api/GetCookies", controllers.GetUsrCookies).Methods(http.MethodGet)
-	// websocke
+	// websocket
 	controllers.RegisterchatHandler()
 
 	// register api
