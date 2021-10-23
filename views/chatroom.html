@@ -61,70 +61,68 @@
         var socket = null;
         $(function () {
             let wsuri = window.location.host + '/ws';
-            socket = new WebSocket('ws://' + wsuri + "?clientId=" + $('#uuid').text());
-            socket.onopen = function (e) {
-                let data = GetData(0);
-                socket.send(data)
-            }
+            let userBox = $("#box");
+            let msgBox = $("#messageList");
+            let list = $("#list");
 
+            socket = new WebSocket('ws://' + wsuri + "?clientId=" + $('#uuid').text());
             socket.onmessage = function (e) {
                 let data = JSON.parse(e.data);
-                let userBox = $("#box");
-                let msgBox = $("#messageList");
-                let list = $("#list");
-                switch (data.msg.type) {
-                    case 0:
+                switch (data.type) {
+                    case 2:
                         userBox.empty();
                         list.empty();
-                        userBox.append("<option value='all'> 所有人 </option>");
-                        $.each(data.user_list, function (index, value) {
-                            userBox.append("<option value='" + value + "'>" + index + "</option>");
-                            list.append("<li>" + index + "</li>");
+                        userBox.append("<option value='all'>所有人</option>");
+                        var users;
+                        $.get("api/GetUserList", function (data) {
+                            users = JSON.parse(data);
+                            $.each(users, function (index, value) {
+                                userBox.append("<option value='" + value.uid + "'>" + value.name + "</option>");
+                                list.append("<li>" + value.name + "</li>");
+                            });
                         });
-                        msgBox.append("<li>" + data.msg.content + "</li>");
+                        msgBox.append("<li>" + data.content + "</li>");
                         msgBox.scrollTop = msgBox.scrollHeight;
                         break;
                     default:
-                        msgBox.append("<li>" + data.msg.content + "</li>");
+                        msgBox.append("<li>" + data.content + "</li>");
                         msgBox.scrollTop = msgBox.scrollHeight;
                         break;
                 }
             }
 
-            socket.onclose = function (e) {
-                let data = GetData(1);
-                socket.send(data)
-            }
-
             $('#message').keypress(function (e) {
-                let data = GetData(2);
                 let key = e.which;
                 if (key == 13) {
-                    socket.send(data);
+                    socket.send(getData());
                     $("#message").val('').focus();
                 }
             });
 
             $("#send").click(function () {
-                let data = GetData(2);
-                socket.send(data);
+                socket.send(getData());
                 $("#message").val('').focus();
             });
-        })
 
-        // default type 2
-        function GetData(type) {
-            let m = $("#message");
-            return JSON.stringify({
-                client_id: $('#uuid').text(),
-                usr_name: $('#name').text(),
-                msg: {
-                    type: type,
-                    content: m.val(),
-                    to_id: $('#box').val()
+            function getData() {
+                var data;
+                if (userBox.val() != "all") {
+                    data = {
+                        content: $("#message").val(),
+                        to_user: {
+                            uid: $("#box option:selected").val(),
+                            name: $("#box option:selected").text()
+                        }
+                    };
                 }
-            });
-        }
+                else {
+                    data = {
+                        content: $("#message").val()
+                    };
+                }
+                return JSON.stringify(data);
+            }
+        })
     </script>
 </body>
 
