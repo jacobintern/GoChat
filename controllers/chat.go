@@ -3,6 +3,7 @@ package controllers
 import (
 	"fmt"
 	"net/http"
+	"path/filepath"
 	"text/template"
 	"time"
 
@@ -19,7 +20,8 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 func LoginPage(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		tmpl := template.Must(template.ParseFiles("./views/login.html"))
+		path, _ := filepath.Abs("../views/login.html")
+		tmpl := template.Must(template.ParseFiles(path))
 		tmpl.Execute(w, nil)
 		break
 	case "POST":
@@ -46,7 +48,8 @@ func LoginPage(w http.ResponseWriter, r *http.Request) {
 func Register(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		tmpl := template.Must(template.ParseFiles("./views/register.html"))
+		path, _ := filepath.Abs("../views/register.html")
+		tmpl := template.Must(template.ParseFiles(path))
 		tmpl.Execute(w, nil)
 		break
 	case "POST":
@@ -73,8 +76,9 @@ func ChatRoom(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		u := service.UID{UID: r.URL.Query().Get("uid")}
 		if len(u.UID) > 0 {
+			path, _ := filepath.Abs("../views/chatroom.html")
 			data := u.GetUser()
-			tmpl := template.Must(template.ParseFiles("./views/chatroom.html"))
+			tmpl := template.Must(template.ParseFiles(path))
 			tmpl.Execute(w, data)
 		} else {
 			http.Redirect(w, r, "/login", http.StatusSeeOther)
