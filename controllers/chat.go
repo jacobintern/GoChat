@@ -20,7 +20,7 @@ func HomePage(w http.ResponseWriter, r *http.Request) {
 func LoginPage(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		path, _ := filepath.Abs("../views/login.html")
+		path, _ := filepath.Abs("views/login.html")
 		tmpl := template.Must(template.ParseFiles(path))
 		tmpl.Execute(w, nil)
 		break
@@ -48,7 +48,7 @@ func LoginPage(w http.ResponseWriter, r *http.Request) {
 func Register(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":
-		path, _ := filepath.Abs("../views/register.html")
+		path, _ := filepath.Abs("views/register.html")
 		tmpl := template.Must(template.ParseFiles(path))
 		tmpl.Execute(w, nil)
 		break
@@ -76,7 +76,7 @@ func ChatRoom(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		u := service.UID{UID: r.URL.Query().Get("uid")}
 		if len(u.UID) > 0 {
-			path, _ := filepath.Abs("../views/chatroom.html")
+			path, _ := filepath.Abs("views/chatroom.html")
 			data := u.GetUser()
 			tmpl := template.Must(template.ParseFiles(path))
 			tmpl.Execute(w, data)

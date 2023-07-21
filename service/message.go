@@ -21,7 +21,7 @@ func (m *Message) NewMessage() *Message {
 		return &Message{
 			User:    m.User,
 			Type:    MsgNormal,
-			Content: m.User.UserInfo.Name + " says : " + m.Content,
+			Content: m.User.UserInfo.Name + " : " + m.Content,
 			ToUser:  m.ToUser,
 		}
 	}

@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -29,9 +30,12 @@ type ConnectionInfo struct {
 
 // MongoDBcontext is connect setting
 func (c ConnectionInfo) MongoDBcontext() *mongo.Collection {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	conn := fmt.Sprint("mongodb+srv://j_dev:", os.Getenv("MONGODBPSWD"), "@jdev.y4x5s.gcp.mongodb.net/?retryWrites=true&w=majority")
-	fmt.Println("get env")
-	fmt.Println(os.Getenv("MONGODBPSWD"))
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(conn))
