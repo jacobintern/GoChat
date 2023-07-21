@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -28,13 +29,15 @@ type ConnectionInfo struct {
 
 // MongoDBcontext is connect setting
 func (c ConnectionInfo) MongoDBcontext() *mongo.Collection {
+	conn := fmt.Sprint("mongodb+srv://j_dev:", os.Getenv("MONGODBPSWD"), "@jdev.y4x5s.gcp.mongodb.net/?retryWrites=true&w=majority")
+	fmt.Println("get env")
+	fmt.Println(os.Getenv("MONGODBPSWD"))
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(
-		"mongodb+srv://j_dev:"+os.Getenv("MONGODBPSWD")+"@jdev.y4x5s.gcp.mongodb.net/"+c.DBName+"?retryWrites=true&w=majority",
-	))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(conn))
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	return client.Database(c.DBName).Collection(c.CollectionName)
 }

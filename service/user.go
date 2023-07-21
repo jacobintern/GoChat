@@ -34,6 +34,13 @@ type UserInfo struct {
 	Name string `json:"name"`
 }
 
+func DbContext() ConnectionInfo {
+	return ConnectionInfo{
+		DBName:         "chat_db",
+		CollectionName: "chat_acc",
+	}
+}
+
 // NewUser is
 func (u *User) NewUser() *User {
 	uid := UID{UID: u.Conn.Request().URL.Query().Get("clientId")}
@@ -106,11 +113,7 @@ func (u *User) ReceiveMessage() error {
 // GetUser is
 func (u UID) GetUser() *UserInfo {
 	chatAcc := Acc{}
-	mongoDB := ConnectionInfo{
-		DBName:         "chat_db",
-		CollectionName: "chat_acc",
-	}
-	collection := mongoDB.MongoDBcontext()
+	collection := DbContext().MongoDBcontext()
 	objID, err := primitive.ObjectIDFromHex(u.UID)
 	filter := bson.M{"_id": objID}
 	err = collection.FindOne(context.Background(), filter).Decode(&chatAcc)
@@ -126,14 +129,10 @@ func (u UID) GetUser() *UserInfo {
 // ValidUser is checkout login user exist in mongodb
 func ValidUser(r *http.Request) *Acc {
 	chatAcc := Acc{}
-	mongoDB := ConnectionInfo{
-		DBName:         "chat_db",
-		CollectionName: "chat_acc",
-	}
 	r.ParseForm()
 	acc := r.FormValue("acc")
 	pswd := r.FormValue("pswd")
-	collection := mongoDB.MongoDBcontext()
+	collection := DbContext().MongoDBcontext()
 	filter := bson.M{"acc": acc, "pswd": pswd}
 	collection.Find(context.Background(), filter)
 	err := collection.FindOne(context.Background(), filter).Decode(&chatAcc)
@@ -145,12 +144,8 @@ func ValidUser(r *http.Request) *Acc {
 
 // CreateUser is
 func CreateUser(r *http.Request) *mongo.InsertOneResult {
-	mongoDB := ConnectionInfo{
-		DBName:         "chat_db",
-		CollectionName: "chat_acc",
-	}
 	r.ParseForm()
-	collection := mongoDB.MongoDBcontext()
+	collection := DbContext().MongoDBcontext()
 	res, err := collection.InsertOne(context.Background(), Acc{
 		Acc:    r.FormValue("acc"),
 		Pswd:   r.FormValue("pswd"),
