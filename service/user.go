@@ -127,13 +127,10 @@ func (u UID) GetUser() *UserInfo {
 }
 
 // ValidUser is checkout login user exist in mongodb
-func ValidUser(r *http.Request) *Acc {
+func ValidUser(user *Acc) *Acc {
 	chatAcc := Acc{}
-	r.ParseForm()
-	acc := r.FormValue("acc")
-	pswd := r.FormValue("pswd")
 	collection := DbContext().MongoDBcontext()
-	filter := bson.M{"acc": acc, "pswd": pswd}
+	filter := bson.M{"acc": user.Acc, "pswd": user.Pswd}
 	collection.Find(context.Background(), filter)
 	err := collection.FindOne(context.Background(), filter).Decode(&chatAcc)
 	if err == nil {

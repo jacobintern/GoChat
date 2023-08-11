@@ -1,34 +1,33 @@
 package main
 
 import (
-	"log"
-	"net/http"
+	"fmt"
 
-	"github.com/gorilla/mux"
+	"github.com/gin-gonic/gin"
 	"github.com/jacobintern/GoChat/controllers"
 )
 
 func main() {
-	r := mux.NewRouter()
+	r := gin.Default()
 	// page
-	r.HandleFunc("/hello", controllers.HomePage).Methods(http.MethodGet)
-	controllers.RegisterPage()
+	r.GET("/login", controllers.GetLogin)
+	r.POST("/login", controllers.Login)
+	r.GET("/register", controllers.GetRegister)
+	r.GET("/chatroom", controllers.GetRoom)
+
 	// api
-	r.HandleFunc("/api/GetUserList", controllers.GetUsers).Methods(http.MethodGet)
-	r.HandleFunc("/api/GetCookies", controllers.GetUsrCookies).Methods(http.MethodGet)
+	// r.HandleFunc("/api/GetUserList", controllers.GetUsers).Methods(http.MethodGet)
+	// r.HandleFunc("/api/GetCookies", controllers.GetUsrCookies).Methods(http.MethodGet)
 	// websocket
 	controllers.RegisterchatHandler()
 
-	// register api
-	http.Handle("/", r)
-
 	// static
-	r.PathPrefix("/static/").Handler(http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
-	//http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("./static"))))
+	r.LoadHTMLGlob("views/*")
+	r.Static("/static", "./static")
 
 	// if any err log
-	err := http.ListenAndServe(":8888", nil)
+	err := r.Run(":8888")
 	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
+		fmt.Println(err)
 	}
 }
