@@ -47,6 +47,7 @@
                         </div>
                     </div>
                 </div>
+                <button id="leave_btn"> leave </button>
             </div>
         </div>
         <hr>
@@ -102,6 +103,11 @@
                 socket.send(getData());
                 $("#message").val('').focus();
             });
+
+            $("#leave_btn").click(function(){
+                socket.close();
+                window.location.href = '/login';
+            })
 
             function getData() {
                 var data;
