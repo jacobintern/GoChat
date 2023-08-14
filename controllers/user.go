@@ -35,13 +35,9 @@ func Register(c *gin.Context) {
 
 // GetUsers is
 func GetUsers(c *gin.Context) {
-	// userList := service.Broadcaster.GetUserList()
-	// r, err := json.Marshal(userList)
+	userList := service.Broadcaster.GetUserList()
 
-	// if err != nil {
-	// 	fmt.Println(err.Error())
-	// }
-	// fmt.Fprint(w, string(r))
+	c.IndentedJSON(http.StatusOK, userList)
 }
 
 // GetUsrCookies is

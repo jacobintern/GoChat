@@ -2,17 +2,17 @@ package controllers
 
 import (
 	"log"
-	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/jacobintern/GoChat/service"
 	"golang.org/x/net/websocket"
 )
 
 // RegisterchatHandler is
-func RegisterchatHandler() {
+func RegisterchatHandler(c *gin.Engine) {
 	go service.Broadcaster.Start()
 
-	http.Handle("/ws", websocket.Handler(Echo))
+	c.GET("/ws", gin.WrapH(websocket.Handler(Echo)))
 }
 
 // Echo is
@@ -26,17 +26,17 @@ func Echo(conn *websocket.Conn) {
 	go user.SendMessage()
 
 	// 使用者進入
-	msg := user.NewUserEnterMessage()
+	enterMsg := user.NewUserEnterMessage()
 	service.Broadcaster.UserEntering(&user)
-	service.Broadcaster.Broadcast(msg)
+	service.Broadcaster.Broadcast(enterMsg)
 
 	// 訊息接收並傳送給其他使用者
 	err := user.ReceiveMessage()
 
 	// 使用者離開
-	msg = user.NewUserLeaveMessage()
+	leaveMsg := user.NewUserLeaveMessage()
 	service.Broadcaster.UserLeaving(&user)
-	service.Broadcaster.Broadcast(msg)
+	service.Broadcaster.Broadcast(leaveMsg)
 
 	if err == nil {
 		conn.Close()

@@ -27,7 +27,7 @@ func main() {
 	}
 
 	// websocket
-	controllers.RegisterchatHandler()
+	controllers.RegisterchatHandler(r)
 
 	// static
 	r.LoadHTMLGlob("views/*")

@@ -74,9 +74,8 @@
                         list.empty();
                         userBox.append("<option value='all'>所有人</option>");
                         var users;
-                        $.get("api/GetUserList", function (data) {
-                            users = JSON.parse(data);
-                            $.each(users, function (index, value) {
+                        $.get("api/GetUserList", function (data) {                                     
+                            $.each(data, function (index, value) {
                                 userBox.append("<option value='" + value.uid + "'>" + value.name + "</option>");
                                 list.append("<li>" + value.name + "</li>");
                             });
