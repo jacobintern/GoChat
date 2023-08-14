@@ -10,14 +10,22 @@ import (
 func main() {
 	r := gin.Default()
 	// page
-	r.GET("/login", controllers.GetLogin)
-	r.POST("/login", controllers.Login)
-	r.GET("/register", controllers.GetRegister)
-	r.GET("/chatroom", controllers.GetRoom)
+	page := r.Group("")
+	{
+		page.GET("/login", controllers.GetLogin)
+		page.GET("/register", controllers.GetRegister)
+		page.GET("/chatroom", controllers.GetRoom)
+	}
 
 	// api
-	// r.HandleFunc("/api/GetUserList", controllers.GetUsers).Methods(http.MethodGet)
-	// r.HandleFunc("/api/GetCookies", controllers.GetUsrCookies).Methods(http.MethodGet)
+	api := r.Group("/api")
+	{
+		api.POST("/login", controllers.Login)
+		api.POST("register", controllers.Register)
+		api.GET("/GetUserList", controllers.GetUsers)
+		api.GET("/GetCookies", controllers.GetUsrCookies)
+	}
+
 	// websocket
 	controllers.RegisterchatHandler()
 

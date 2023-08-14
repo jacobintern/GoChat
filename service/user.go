@@ -5,10 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"net/http"
-	"time"
 
-	"github.com/google/uuid"
+	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -115,6 +113,9 @@ func (u UID) GetUser() *UserInfo {
 	chatAcc := Acc{}
 	collection := DbContext().MongoDBcontext()
 	objID, err := primitive.ObjectIDFromHex(u.UID)
+	if err != nil {
+		fmt.Println(err)
+	}
 	filter := bson.M{"_id": objID}
 	err = collection.FindOne(context.Background(), filter).Decode(&chatAcc)
 	if err == nil {
@@ -127,41 +128,28 @@ func (u UID) GetUser() *UserInfo {
 }
 
 // ValidUser is checkout login user exist in mongodb
-func ValidUser(user *Acc) *Acc {
-	chatAcc := Acc{}
+func ValidUser(user *Acc) {
 	collection := DbContext().MongoDBcontext()
 	filter := bson.M{"acc": user.Acc, "pswd": user.Pswd}
 	collection.Find(context.Background(), filter)
-	err := collection.FindOne(context.Background(), filter).Decode(&chatAcc)
-	if err == nil {
-		return &chatAcc
+	err := collection.FindOne(context.Background(), filter).Decode(&user)
+	if err != nil {
+		fmt.Print(err)
 	}
-	return &Acc{}
 }
 
 // CreateUser is
-func CreateUser(r *http.Request) *mongo.InsertOneResult {
-	r.ParseForm()
+func CreateUser(c *gin.Context) *mongo.InsertOneResult {
 	collection := DbContext().MongoDBcontext()
 	res, err := collection.InsertOne(context.Background(), Acc{
-		Acc:    r.FormValue("acc"),
-		Pswd:   r.FormValue("pswd"),
-		Name:   r.FormValue("name"),
-		Email:  r.FormValue("email"),
-		Gender: r.FormValue("gender"),
+		Acc:    c.PostForm("acc"),
+		Pswd:   c.PostForm("pswd"),
+		Name:   c.PostForm("name"),
+		Email:  c.PostForm("email"),
+		Gender: c.PostForm("gender"),
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
 	return res
-}
-
-// SetUsrCookie is
-func (acc *Acc) SetUsrCookie(w http.ResponseWriter) {
-	cookie := http.Cookie{
-		Name:    uuid.New().String(),
-		Value:   acc.ID,
-		Expires: time.Now().Add(time.Minute * time.Duration(5)),
-	}
-	http.SetCookie(w, &cookie)
 }

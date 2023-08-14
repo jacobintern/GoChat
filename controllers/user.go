@@ -1,49 +1,58 @@
 package controllers
 
 import (
-	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/jacobintern/GoChat/service"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func Login(c *gin.Context) {
 	user := &service.Acc{}
 	user.Acc = c.PostForm("acc")
 	user.Pswd = c.PostForm("pswd")
+	service.ValidUser(user)
+
+	if user.ID != "" {
+		c.SetCookie(uuid.New().String(), user.ID, 10, "", "", true, true)
+		c.IndentedJSON(http.StatusOK, gin.H{"message": "login successs", "uid": user.ID})
+		return
+	} else {
+		c.IndentedJSON(http.StatusUnauthorized, gin.H{"message": "login fail"})
+		return
+	}
 }
 
-// case "POST":
-// if acc := service.ValidUser(r); acc != nil {
-// 	acc.SetUsrCookie(w)
-// 	http.Redirect(w, r, "/chatroom?uid="+acc.ID, http.StatusSeeOther)
-// } else {
-// 	http.Redirect(w, r, "/login", http.StatusSeeOther)
-// }
-// break
+func Register(c *gin.Context) {
+	if len(service.CreateUser(c).InsertedID.(primitive.ObjectID).Hex()) > 0 {
+		c.IndentedJSON(http.StatusOK, gin.H{"message": "registation successs", "success": true})
+	}
+
+	c.IndentedJSON(http.StatusOK, gin.H{"message": "registation failed", "success": false})
+}
 
 // GetUsers is
-func GetUsers(w http.ResponseWriter, req *http.Request) {
-	userList := service.Broadcaster.GetUserList()
-	r, err := json.Marshal(userList)
+func GetUsers(c *gin.Context) {
+	// userList := service.Broadcaster.GetUserList()
+	// r, err := json.Marshal(userList)
 
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	fmt.Fprint(w, string(r))
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// }
+	// fmt.Fprint(w, string(r))
 }
 
 // GetUsrCookies is
-func GetUsrCookies(w http.ResponseWriter, req *http.Request) {
+func GetUsrCookies(c *gin.Context) {
 	// for _, cookie := range req.Cookies() {
 	// 	fmt.Println("Found a cookie named:", cookie.Name)
 	// 	fmt.Println("Found a cookie expired:", cookie.Expires)
 	// }
-	r, err := json.Marshal(req.Cookies())
-	if err != nil {
-		fmt.Println(err.Error())
-	}
-	fmt.Fprint(w, string(r))
+	// r, err := json.Marshal(req.Cookies())
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// }
+	// fmt.Fprint(w, string(r))
 }
