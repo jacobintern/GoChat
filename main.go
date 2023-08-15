@@ -5,6 +5,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/jacobintern/GoChat/controllers"
+	"github.com/jacobintern/GoChat/service"
+	"golang.org/x/net/websocket"
 )
 
 func main() {
@@ -27,7 +29,8 @@ func main() {
 	}
 
 	// websocket
-	controllers.RegisterchatHandler(r)
+	go service.Hub.Run()
+	r.GET("/ws", gin.WrapH(websocket.Handler(controllers.Echo)))
 
 	// static
 	r.LoadHTMLGlob("views/*")

@@ -104,7 +104,7 @@ func (u *User) ReceiveMessage() error {
 
 		// 内容发送到聊天室
 		sendMsg := reply.NewMessage()
-		Broadcaster.Broadcast(sendMsg)
+		Hub.Broadcast(sendMsg)
 	}
 }
 

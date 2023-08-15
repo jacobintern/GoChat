@@ -35,7 +35,7 @@ func Register(c *gin.Context) {
 
 // GetUsers is
 func GetUsers(c *gin.Context) {
-	userList := service.Broadcaster.GetUserList()
+	userList := service.Hub.GetUserList()
 
 	c.IndentedJSON(http.StatusOK, userList)
 }

@@ -1,7 +1,7 @@
 package service
 
-// BroadcasterModel is
-type BroadcasterModel struct {
+// HubModel is
+type HubModel struct {
 	users map[string]*User
 
 	enterChannel        chan *User
@@ -11,8 +11,8 @@ type BroadcasterModel struct {
 	usersChannel        chan []*UserInfo
 }
 
-// Broadcaster is
-var Broadcaster = &BroadcasterModel{
+// Hub is
+var Hub = &HubModel{
 	users:               make(map[string]*User),
 	enterChannel:        make(chan *User),
 	leaveChannel:        make(chan *User),
@@ -21,46 +21,46 @@ var Broadcaster = &BroadcasterModel{
 	usersChannel:        make(chan []*UserInfo),
 }
 
-// Start is
-func (b *BroadcasterModel) Start() {
+// Run is
+func (h *HubModel) Run() {
 	for {
 		select {
-		case user := <-b.enterChannel:
-			b.users[user.UserInfo.Name] = user
-		case msg := <-b.messageChannel:
-			for _, user := range b.users {
+		case user := <-h.enterChannel:
+			h.users[user.UserInfo.Name] = user
+		case msg := <-h.messageChannel:
+			for _, user := range h.users {
 				user.MessageChannel <- msg
 			}
-		case user := <-b.leaveChannel:
-			delete(b.users, user.UserInfo.Name)
+		case user := <-h.leaveChannel:
+			delete(h.users, user.UserInfo.Name)
 			close(user.MessageChannel)
-		case <-b.requestUsersChannel:
-			userList := make([]*UserInfo, 0, len(b.users))
-			for _, user := range b.users {
+		case <-h.requestUsersChannel:
+			userList := make([]*UserInfo, 0, len(h.users))
+			for _, user := range h.users {
 				userList = append(userList, user.UserInfo)
 			}
-			b.usersChannel <- userList
+			h.usersChannel <- userList
 		}
 	}
 }
 
 // UserEntering is
-func (b *BroadcasterModel) UserEntering(u *User) {
+func (b *HubModel) UserEntering(u *User) {
 	b.enterChannel <- u
 }
 
 // UserLeaving is
-func (b *BroadcasterModel) UserLeaving(u *User) {
+func (b *HubModel) UserLeaving(u *User) {
 	b.leaveChannel <- u
 }
 
 // Broadcast is
-func (b *BroadcasterModel) Broadcast(msg *Message) {
+func (b *HubModel) Broadcast(msg *Message) {
 	b.messageChannel <- msg
 }
 
 // GetUserList is
-func (b *BroadcasterModel) GetUserList() []*UserInfo {
+func (b *HubModel) GetUserList() []*UserInfo {
 	b.requestUsersChannel <- struct{}{}
 	return <-b.usersChannel
 }
