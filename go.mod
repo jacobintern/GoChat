@@ -13,6 +13,6 @@ require (
 	github.com/pelletier/go-toml/v2 v2.0.9 // indirect
 	go.mongodb.org/mongo-driver v1.12.0
 	golang.org/x/arch v0.4.0 // indirect
-	golang.org/x/net v0.14.0
+	golang.org/x/net v0.14.0 // indirect
 	google.golang.org/protobuf v1.31.0 // indirect
 )
