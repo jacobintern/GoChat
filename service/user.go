@@ -7,10 +7,10 @@ import (
 	"log"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
-	"golang.org/x/net/websocket"
 )
 
 // UID is
@@ -40,8 +40,11 @@ func DbContext() ConnectionInfo {
 }
 
 // NewUser is
-func (u *User) NewUser() *User {
-	uid := UID{UID: u.Conn.Request().URL.Query().Get("clientId")}
+func (u *User) NewUser(userID string) *User {
+	if len(userID) == 0 {
+		fmt.Println("lost clientID")
+	}
+	uid := UID{UID: userID}
 	u.UserInfo = uid.GetUser()
 	u.MessageChannel = make(chan *Message)
 	return u
@@ -51,9 +54,10 @@ func (u *User) NewUser() *User {
 func (u *User) SendMessage() {
 	for msg := range u.MessageChannel {
 		if msg.ToUser != nil {
+			// 密語
 			if msg.ToUser.UID == u.UserInfo.UID {
 				tmp := Message{
-					Content: "This secret message comes from <font color='red'>" + msg.User.UserInfo.Name + "</font> says : " + msg.Content,
+					Content: "From <font color='red'>" + msg.User.UserInfo.Name + "</font> says : " + msg.Content,
 					ToUser:  msg.ToUser,
 					User:    msg.User,
 					Type:    msg.Type,
@@ -61,31 +65,29 @@ func (u *User) SendMessage() {
 
 				r, err := json.Marshal(tmp)
 				if err != nil {
-					fmt.Println(err)
 					log.Fatal(err)
 				}
-				websocket.Message.Send(u.Conn, string(r))
+				u.Conn.WriteMessage(websocket.TextMessage, r)
 			} else if msg.User.UserInfo.UID == u.UserInfo.UID {
 				tmp := Message{
-					Content: "You sent a secret message to <font color='red'>" + msg.ToUser.Name + "</font> says : " + msg.Content,
+					Content: "To <font color='red'>" + msg.ToUser.Name + "</font> says : " + msg.Content,
 					ToUser:  msg.ToUser,
 					User:    msg.User,
 					Type:    msg.Type,
 				}
 				r, err := json.Marshal(tmp)
 				if err != nil {
-					fmt.Println(err)
 					log.Fatal(err)
 				}
-				websocket.Message.Send(u.Conn, string(r))
+				u.Conn.WriteMessage(websocket.TextMessage, r)
 			}
 		} else {
+			// 一般公頻
 			r, err := json.Marshal(msg)
 			if err != nil {
-				fmt.Println(err)
 				log.Fatal(err)
 			}
-			websocket.Message.Send(u.Conn, string(r))
+			u.Conn.WriteMessage(websocket.TextMessage, r)
 		}
 	}
 }
@@ -93,14 +95,21 @@ func (u *User) SendMessage() {
 // ReceiveMessage is
 func (u *User) ReceiveMessage() error {
 	for {
-		var tmp string
+		// var tmp string
 		reply := Message{}
-		if err := websocket.Message.Receive(u.Conn, &tmp); err != nil {
+		_, p, err := u.Conn.ReadMessage()
+
+		if err != nil {
 			return err
 		}
-		reply.User = u
+
 		// 解析json
-		json.Unmarshal([]byte(tmp), &reply)
+		err = json.Unmarshal([]byte(p), &reply)
+		reply.User = u
+
+		if err != nil {
+			return err
+		}
 
 		// 内容发送到聊天室
 		sendMsg := reply.NewMessage()

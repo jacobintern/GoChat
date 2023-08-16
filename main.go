@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jacobintern/GoChat/controllers"
 	"github.com/jacobintern/GoChat/service"
-	"golang.org/x/net/websocket"
 )
 
 func main() {
@@ -30,7 +29,7 @@ func main() {
 
 	// websocket
 	go service.Hub.Run()
-	r.GET("/ws", gin.WrapH(websocket.Handler(controllers.Echo)))
+	r.GET("/ws", controllers.HandShake)
 
 	// static
 	r.LoadHTMLGlob("views/*")
