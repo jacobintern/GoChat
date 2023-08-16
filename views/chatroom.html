@@ -47,6 +47,7 @@
                         </div>
                     </div>
                 </div>
+                <button id="leave_btn"> leave </button>
             </div>
         </div>
         <hr>
@@ -68,15 +69,15 @@
             socket = new WebSocket('ws://' + wsuri + "?clientId=" + $('#uuid').text());
             socket.onmessage = function (e) {
                 let data = JSON.parse(e.data);
+                console.log(data)
                 switch (data.type) {
                     case 2:
                         userBox.empty();
                         list.empty();
                         userBox.append("<option value='all'>所有人</option>");
                         var users;
-                        $.get("api/GetUserList", function (data) {
-                            users = JSON.parse(data);
-                            $.each(users, function (index, value) {
+                        $.get("api/GetUserList", function (data) {                                     
+                            $.each(data, function (index, value) {
                                 userBox.append("<option value='" + value.uid + "'>" + value.name + "</option>");
                                 list.append("<li>" + value.name + "</li>");
                             });
@@ -103,6 +104,11 @@
                 socket.send(getData());
                 $("#message").val('').focus();
             });
+
+            $("#leave_btn").click(function(){
+                socket.close();
+                window.location.href = '/login';
+            })
 
             function getData() {
                 var data;

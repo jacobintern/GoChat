@@ -2,46 +2,81 @@ package controllers
 
 import (
 	"log"
-	"net/http"
 
+	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/jacobintern/GoChat/service"
-	"golang.org/x/net/websocket"
 )
 
-// RegisterchatHandler is
-func RegisterchatHandler() {
-	go service.Broadcaster.Start()
+// // Echo is
+// func Echo(conn *websocket.Conn) {
+// 	// 建立使用者
+// 	user := service.User{
+// 		Conn: conn,
+// 	}
+// 	user.NewUser()
+// 	// 建立傳送訊息通道 goroutine監聽
+// 	go user.SendMessage()
 
-	http.Handle("/ws", websocket.Handler(Echo))
+// 	Enter(&user)
+
+// 	// 訊息接收並傳送給其他使用者
+// 	err := user.ReceiveMessage()
+
+// 	Leave(&user)
+
+// 	if err == nil {
+// 		conn.Close()
+// 	} else {
+// 		log.Println("read from client error:", err)
+// 		conn.Close()
+// 	}
+// }
+
+func Leave(user *service.User) {
+	// 使用者離開
+	leaveMsg := user.NewUserLeaveMessage()
+	service.Hub.UserLeaving(user)
+	service.Hub.Broadcast(leaveMsg)
 }
 
-// Echo is
-func Echo(conn *websocket.Conn) {
+func Enter(user *service.User) {
+	// 使用者進入
+	enterMsg := user.NewUserEnterMessage()
+	service.Hub.UserEntering(user)
+	service.Hub.Broadcast(enterMsg)
+}
+
+var wsUpgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
+
+func HandShake(c *gin.Context) {
+	ws, _ := wsUpgrader.Upgrade(c.Writer, c.Request, nil)
+	userID := c.Query("clientId")
+	defer ws.Close()
+
 	// 建立使用者
 	user := service.User{
-		Conn: conn,
+		Conn: ws,
 	}
-	user.NewUser()
+	user.NewUser(userID)
 	// 建立傳送訊息通道 goroutine監聽
 	go user.SendMessage()
 
-	// 使用者進入
-	msg := user.NewUserEnterMessage()
-	service.Broadcaster.UserEntering(&user)
-	service.Broadcaster.Broadcast(msg)
+	Enter(&user)
 
 	// 訊息接收並傳送給其他使用者
 	err := user.ReceiveMessage()
 
-	// 使用者離開
-	msg = user.NewUserLeaveMessage()
-	service.Broadcaster.UserLeaving(&user)
-	service.Broadcaster.Broadcast(msg)
+	Leave(&user)
 
 	if err == nil {
-		conn.Close()
+		ws.Close()
 	} else {
 		log.Println("read from client error:", err)
-		conn.Close()
+		ws.Close()
 	}
+
 }
