@@ -69,7 +69,6 @@
             socket = new WebSocket('ws://' + wsuri + "?clientId=" + $('#uuid').text());
             socket.onmessage = function (e) {
                 let data = JSON.parse(e.data);
-                console.log(data)
                 switch (data.type) {
                     case 2:
                         userBox.empty();
