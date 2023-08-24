@@ -11,15 +11,15 @@ import (
 func Leave(user *service.User) {
 	// 使用者離開
 	leaveMsg := user.NewUserLeaveMessage()
-	go service.Hub.UserLeaving(user)
-	go service.Hub.Broadcast(leaveMsg)
+	service.Hub.UserLeaving(user)
+	service.Hub.Broadcast(leaveMsg)
 }
 
 func Enter(user *service.User) {
 	// 使用者進入
 	enterMsg := user.NewUserEnterMessage()
-	go service.Hub.UserEntering(user)
-	go service.Hub.Broadcast(enterMsg)
+	service.Hub.UserEntering(user)
+	service.Hub.Broadcast(enterMsg)
 }
 
 var wsUpgrader = websocket.Upgrader{
