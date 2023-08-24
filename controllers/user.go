@@ -28,6 +28,7 @@ func Login(c *gin.Context) {
 func Register(c *gin.Context) {
 	if len(service.CreateUser(c).InsertedID.(primitive.ObjectID).Hex()) > 0 {
 		c.IndentedJSON(http.StatusOK, gin.H{"message": "registation successs", "success": true})
+		return
 	}
 
 	c.IndentedJSON(http.StatusOK, gin.H{"message": "registation failed", "success": false})
