@@ -35,7 +35,9 @@ func (c ConnectionInfo) MongoDBcontext() *mongo.Collection {
 		log.Fatal("Error loading .env file")
 	}
 
-	conn := fmt.Sprint("mongodb+srv://j_dev:", os.Getenv("MONGODBPSWD"), "@jdev.y4x5s.gcp.mongodb.net/?retryWrites=true&w=majority")
+	pswd := os.Getenv("MONGODBPSWD")
+
+	conn := fmt.Sprint("mongodb+srv://j_dev:", pswd, "@jdev.y4x5s.gcp.mongodb.net/?retryWrites=true&w=majority")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(conn))
