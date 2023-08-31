@@ -14,12 +14,12 @@ import (
 
 // Acc is
 type Acc struct {
-	ID     string `bson:"_id,omitempty"`
-	Acc    string `bson:"acc"`
-	Pswd   string `bson:"pswd"`
-	Email  string `bson:"email"`
-	Name   string `bson:"name"`
-	Gender string `bson:"gender"`
+	ID     string `bson:"_id,omitempty" json:"uid"`
+	Acc    string `bson:"acc" json:"acc"`
+	Pswd   string `bson:"pswd" json:"pswd"`
+	Email  string `bson:"email" json:"email"`
+	Name   string `bson:"name" json:"name"`
+	Gender string `bson:"gender" json:"gender"`
 }
 
 // ConnectionInfo is

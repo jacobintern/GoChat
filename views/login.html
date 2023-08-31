@@ -73,8 +73,9 @@
     <!-- script -->
     <script>
     $("#login_btn").click(function(){
-        $.post("/api/login", {acc : $("#acc").val(),pswd : $("#pswd").val()},function(data){
-            window.location.href = '/chatroom?uid='+data.uid
+        var body = {acc : $("#acc").val(),pswd : $("#pswd").val()}
+        $.post("/api/login", body, function(data){
+            window.location.href = '/chatroom/'+data.uid
         },'json')
         .fail(function(data){
             alert(data.message);

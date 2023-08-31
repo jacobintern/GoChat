@@ -15,7 +15,7 @@ func main() {
 	{
 		page.GET("/login", controllers.GetLogin)
 		page.GET("/register", controllers.GetRegister)
-		page.GET("/chatroom", controllers.GetRoom)
+		page.GET("/chatroom/:uid", controllers.GetRoom)
 	}
 
 	// api

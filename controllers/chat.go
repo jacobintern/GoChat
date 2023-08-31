@@ -20,11 +20,12 @@ func GetRegister(c *gin.Context) {
 }
 
 func GetRoom(c *gin.Context) {
-	uid := service.UID{UID: c.Query("uid")}
+	uid, ok := c.Params.Get("uid")
 
-	if len(uid.UID) > 0 {
-		data := uid.GetUser()
-		c.HTML(http.StatusOK, "chatroom.html", data)
+	if ok {
+		user := service.UserInfo{UID: uid}
+		user.GetUser()
+		c.HTML(http.StatusOK, "chatroom.html", user)
 	} else {
 		GetLogin(c)
 	}

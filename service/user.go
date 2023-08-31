@@ -13,11 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// UID is
-type UID struct {
-	UID string
-}
-
 // User is
 type User struct {
 	UserInfo       *UserInfo     `json:"user_info"`
@@ -44,8 +39,9 @@ func (u *User) NewUser(userID string) *User {
 	if len(userID) == 0 {
 		fmt.Println("lost clientID")
 	}
-	uid := UID{UID: userID}
-	u.UserInfo = uid.GetUser()
+
+	u.UserInfo = &UserInfo{UID: userID}
+	u.UserInfo.GetUser()
 	u.MessageChannel = make(chan *Message)
 	return u
 }
@@ -118,7 +114,7 @@ func (u *User) ReceiveMessage() error {
 }
 
 // GetUser is
-func (u UID) GetUser() *UserInfo {
+func (u *UserInfo) GetUser() {
 	chatAcc := Acc{}
 	collection := DbContext().MongoDBcontext()
 	objID, err := primitive.ObjectIDFromHex(u.UID)
@@ -127,24 +123,23 @@ func (u UID) GetUser() *UserInfo {
 	}
 	filter := bson.M{"_id": objID}
 	err = collection.FindOne(context.Background(), filter).Decode(&chatAcc)
-	if err == nil {
-		return &UserInfo{
-			UID:  chatAcc.ID,
-			Name: chatAcc.Name,
-		}
+	if err != nil {
+		log.Fatal(err)
 	}
-	return &UserInfo{}
+	u.Name = chatAcc.Name
 }
 
 // ValidUser is checkout login user exist in mongodb
-func ValidUser(user *Acc) {
+func ValidUser(user *Acc) bool {
 	collection := DbContext().MongoDBcontext()
 	filter := bson.M{"acc": user.Acc, "pswd": user.Pswd}
 	collection.Find(context.Background(), filter)
 	err := collection.FindOne(context.Background(), filter).Decode(&user)
 	if err != nil {
-		fmt.Print(err)
+		log.Fatal(err)
+		return false
 	}
+	return true
 }
 
 // CreateUser is
