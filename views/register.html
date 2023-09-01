@@ -78,7 +78,7 @@
                                     class="fa fa-chevron-right"></i></button>
                         </div>
                         <div class="etc-login-form">
-                            <p>already have an account? <a href="/">login here</a></p>
+                            <p>already have an account? <a id="back" href="#">login here</a></p>
                         </div>
                     </div>
                 </div>
@@ -93,7 +93,6 @@
         <script src="/static/js/bootstrap.js"></script>
         <script src="/static/sweetalert2/dist/sweetalert2.min.js"></script>
         <script>
-
             $(function () {
                 $("#register_btn").click(function () {
                     if (!$('#reg_agree').is(':checked')) {
@@ -133,6 +132,10 @@
                                 alert(data.message);
                             }, 'json')
                     }
+                });
+
+                $("#back").click(function(){
+                    GoToLogin()
                 });
 
                 function GoToLogin() {

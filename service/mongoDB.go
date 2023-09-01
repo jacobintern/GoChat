@@ -36,7 +36,7 @@ func (c ConnectionInfo) MongoDBcontext() *mongo.Collection {
 	}
 
 	pswd := os.Getenv("MONGODBPSWD")
-
+	log.Println(pswd)
 	conn := fmt.Sprint("mongodb+srv://j_dev:", pswd, "@jdev.y4x5s.gcp.mongodb.net/?retryWrites=true&w=majority")
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
