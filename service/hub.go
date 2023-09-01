@@ -7,7 +7,7 @@ type HubModel struct {
 	enterChannel        chan *User
 	leaveChannel        chan *User
 	messageChannel      chan *Message
-	requestUsersChannel chan struct{}
+	requestUsersChannel chan bool
 	usersChannel        chan []*UserInfo
 }
 
@@ -17,7 +17,7 @@ var Hub = &HubModel{
 	enterChannel:        make(chan *User),
 	leaveChannel:        make(chan *User),
 	messageChannel:      make(chan *Message),
-	requestUsersChannel: make(chan struct{}),
+	requestUsersChannel: make(chan bool),
 	usersChannel:        make(chan []*UserInfo),
 }
 
@@ -61,6 +61,6 @@ func (b *HubModel) Broadcast(msg *Message) {
 
 // GetUserList is
 func (b *HubModel) GetUserList() []*UserInfo {
-	b.requestUsersChannel <- struct{}{}
+	b.requestUsersChannel <- true
 	return <-b.usersChannel
 }

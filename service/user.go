@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 
 	"github.com/gin-gonic/gin"
@@ -37,7 +36,7 @@ func DbContext() ConnectionInfo {
 // NewUser is
 func (u *User) NewUser(userID string) *User {
 	if len(userID) == 0 {
-		fmt.Println("lost clientID")
+		log.Println("lost clientID")
 	}
 
 	u.UserInfo = &UserInfo{UID: userID}
@@ -61,7 +60,7 @@ func (u *User) SendMessage() {
 
 				r, err := json.Marshal(tmp)
 				if err != nil {
-					log.Fatal(err)
+					log.Println(err)
 				}
 				u.Conn.WriteMessage(websocket.TextMessage, r)
 			} else if msg.User.UserInfo.UID == u.UserInfo.UID {
@@ -73,7 +72,7 @@ func (u *User) SendMessage() {
 				}
 				r, err := json.Marshal(tmp)
 				if err != nil {
-					log.Fatal(err)
+					log.Println(err)
 				}
 				u.Conn.WriteMessage(websocket.TextMessage, r)
 			}
@@ -81,7 +80,7 @@ func (u *User) SendMessage() {
 			// 一般公頻
 			r, err := json.Marshal(msg)
 			if err != nil {
-				log.Fatal(err)
+				log.Println(err)
 			}
 			u.Conn.WriteMessage(websocket.TextMessage, r)
 		}
@@ -119,12 +118,12 @@ func (u *UserInfo) GetUser() {
 	collection := DbContext().MongoDBcontext()
 	objID, err := primitive.ObjectIDFromHex(u.UID)
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 	filter := bson.M{"_id": objID}
 	err = collection.FindOne(context.Background(), filter).Decode(&chatAcc)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	u.Name = chatAcc.Name
 }
@@ -136,7 +135,7 @@ func ValidUser(user *Acc) bool {
 	collection.Find(context.Background(), filter)
 	err := collection.FindOne(context.Background(), filter).Decode(&user)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 		return false
 	}
 	return true
@@ -145,15 +144,13 @@ func ValidUser(user *Acc) bool {
 // CreateUser is
 func CreateUser(c *gin.Context) *mongo.InsertOneResult {
 	collection := DbContext().MongoDBcontext()
-	res, err := collection.InsertOne(context.Background(), Acc{
-		Acc:    c.PostForm("acc"),
-		Pswd:   c.PostForm("pswd"),
-		Name:   c.PostForm("name"),
-		Email:  c.PostForm("email"),
-		Gender: c.PostForm("gender"),
-	})
+	var data Acc
+	if err := c.ShouldBindJSON(&data); err != nil {
+		log.Println(err)
+	}
+	res, err := collection.InsertOne(context.Background(), data)
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 	return res
 }

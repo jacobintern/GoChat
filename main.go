@@ -22,7 +22,7 @@ func main() {
 	api := r.Group("/api")
 	{
 		api.POST("/login", controllers.Login)
-		api.POST("register", controllers.Register)
+		api.POST("/register", controllers.Register)
 		api.GET("/GetUserList", controllers.GetUsers)
 		api.GET("/GetCookies", controllers.GetUsrCookies)
 	}

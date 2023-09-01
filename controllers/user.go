@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -11,8 +12,9 @@ import (
 
 func Login(c *gin.Context) {
 	user := &service.Acc{}
-	user.Acc = c.PostForm("acc")
-	user.Pswd = c.PostForm("pswd")
+	if err := c.ShouldBindJSON(&user); err != nil {
+		log.Println(err)
+	}
 	service.ValidUser(user)
 
 	if user.ID != "" {

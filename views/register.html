@@ -113,8 +113,14 @@
                         SweetAlert(data)
                         return false;
                     } else {
-                        $.post("/api/register",
-                            { acc: $("#acc").val(), pswd: $("#pswd").val(), email: $("#email").val(), name: $("#name").val(), gender: $("input[name=gender]:checked").val() },
+                        var body = JSON.stringify({
+                            acc: $("#acc").val(), 
+                            pswd: $("#pswd").val(), 
+                            email: $("#email").val(), 
+                            name: $("#name").val(), 
+                            gender: $("input[name=gender]:checked").val() 
+                        })
+                        $.post("/api/register", body,
                             function () {
                                 Swal.fire({
                                     icon: 'success',

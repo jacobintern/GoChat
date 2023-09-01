@@ -32,7 +32,7 @@ type ConnectionInfo struct {
 func (c ConnectionInfo) MongoDBcontext() *mongo.Collection {
 	err := godotenv.Load()
 	if err != nil {
-		log.Fatal("Error loading .env file")
+		log.Println("Error loading .env file")
 	}
 
 	pswd := os.Getenv("MONGODBPSWD")
@@ -42,7 +42,7 @@ func (c ConnectionInfo) MongoDBcontext() *mongo.Collection {
 	defer cancel()
 	client, err := mongo.Connect(ctx, options.Client().ApplyURI(conn))
 	if err != nil {
-		log.Fatal(err)
+		log.Println(err)
 	}
 
 	return client.Database(c.DBName).Collection(c.CollectionName)
