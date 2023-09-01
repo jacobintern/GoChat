@@ -16,8 +16,7 @@ import (
 type User struct {
 	UserInfo       *UserInfo     `json:"user_info"`
 	MessageChannel chan *Message `json:"-"`
-
-	Conn *websocket.Conn
+	Conn           *websocket.Conn
 }
 
 // UserInfo is

@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/jacobintern/GoChat/service"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
@@ -18,7 +17,7 @@ func Login(c *gin.Context) {
 	service.ValidUser(user)
 
 	if user.ID != "" {
-		c.SetCookie(uuid.New().String(), user.ID, 10, "", "", true, true)
+		// c.SetCookie(uuid.New().String(), user.ID, 10, "", "", true, true)
 		c.IndentedJSON(http.StatusOK, gin.H{"message": "login successs", "uid": user.ID})
 		return
 	} else {
