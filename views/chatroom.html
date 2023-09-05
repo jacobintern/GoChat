@@ -62,11 +62,16 @@
         var socket = null;
         $(function () {
             let wsuri = window.location.host + '/ws';
+            console.log(window.location.protocol);
             let userBox = $("#box");
             let msgBox = $("#messageList");
             let list = $("#list");
-
-            socket = new WebSocket('ws://' + wsuri + "?clientId=" + $('#uuid').text());
+            if (window.location.protocol == 'http:') {
+                socket = new WebSocket('ws://' + wsuri + "?clientId=" + $('#uuid').text());
+            } 
+            if (window.location.protocol == 'https:') {
+                socket = new WebSocket('wss://' + wsuri + "?clientId=" + $('#uuid').text());
+            }
             socket.onmessage = function (e) {
                 let data = JSON.parse(e.data);
                 switch (data.type) {
@@ -75,7 +80,7 @@
                         list.empty();
                         userBox.append("<option value='all'>所有人</option>");
                         var users;
-                        $.get("/api/GetUserList", function (data) {                                     
+                        $.get("/api/GetUserList", function (data) {
                             $.each(data, function (index, value) {
                                 userBox.append("<option value='" + value.uid + "'>" + value.name + "</option>");
                                 list.append("<li>" + value.name + "</li>");
@@ -104,7 +109,7 @@
                 $("#message").val('').focus();
             });
 
-            $("#leave_btn").click(function(){
+            $("#leave_btn").click(function () {
                 socket.close();
                 window.location.href = '/login';
             })
